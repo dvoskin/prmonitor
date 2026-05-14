@@ -21,8 +21,21 @@ from scanner import run_scan
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "goals-pr-monitor-dev-key")
 
+# ── Initialize DB at import time so gunicorn picks it up ─────────────────────
+# (When running via `python3 app.py` this also runs, which is fine — init_db
+#  uses CREATE TABLE IF NOT EXISTS so it's always safe to call.)
+with app.app_context():
+    from db import init_db, seed_db, get_db as _get_db
+    init_db()
+    with _get_db() as _c:
+        _count = _c.execute("SELECT COUNT(*) FROM mentions").fetchone()[0]
+    if _count == 0:
+        seed_db()
+        print("✅ Fresh database seeded with sample mentions")
+    else:
+        print(f"✅ Database ready — {_count} mentions loaded")
+
 # ── Background scan state ────────────────────────────────────────────────────
-# Shared in-process state: only one scan runs at a time.
 _scan_lock  = threading.Lock()
 _scan_state = {"running": False, "new_count": 0, "error": None}
 
@@ -388,18 +401,9 @@ def api_keywords():
             return jsonify({"ok": True})
 
 
-# ── Boot ──────────────────────────────────────────────────────────────────────
+# ── Local dev entry point ─────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("🔧 Initializing database…")
-    init_db()
-    with get_db() as conn:
-        count = conn.execute("SELECT COUNT(*) FROM mentions").fetchone()[0]
-    if count == 0:
-        print("🌱 Seeding sample data…")
-        seed_db()
-    else:
-        print(f"✅ Database ready — {count} mentions loaded")
     print("\n🚀 Goals PR Impact Monitor")
     print("   http://127.0.0.1:5001\n")
     app.run(debug=True, port=5001, host="127.0.0.1")
