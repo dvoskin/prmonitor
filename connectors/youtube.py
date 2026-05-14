@@ -31,7 +31,8 @@ def search_youtube(query: str) -> list:
     Search YouTube for a query. Returns list of mention dicts.
     Free — parses the ytInitialData JSON blob embedded in YouTube search pages.
     """
-    encoded = urllib.parse.quote(query)
+    # Wrap in quotes for exact phrase matching
+    encoded = urllib.parse.quote(f'"{query}"')
     url = f"https://www.youtube.com/results?search_query={encoded}&sp=CAI%3D"  # sorted by upload date
 
     try:

@@ -48,7 +48,8 @@ def search_google_news_rss(query: str) -> list:
     Search Google News RSS for a query. Returns list of mention dicts.
     Free — uses Google's public RSS endpoint.
     """
-    encoded = urllib.parse.quote(query)
+    # Wrap in quotes for exact phrase matching — prevents "Goals" matching soccer articles
+    encoded = urllib.parse.quote(f'"{query}"')
     url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
 
     try:

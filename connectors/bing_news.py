@@ -33,7 +33,8 @@ def search_bing_news(query: str) -> list:
     Search Bing News RSS for a query. Returns list of mention dicts.
     Free — uses Bing's public news RSS feed.
     """
-    encoded = urllib.parse.quote(query)
+    # Wrap in quotes for exact phrase matching
+    encoded = urllib.parse.quote(f'"{query}"')
     url = f"https://www.bing.com/news/search?q={encoded}&format=RSS"
 
     try:

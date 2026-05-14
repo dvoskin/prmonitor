@@ -94,19 +94,32 @@ def _run_connector(connector_fn, connector_name: str, keyword: str) -> list:
 
 def _is_brand_relevant(title: str, snippet: str, matched_keyword: str = "") -> bool:
     """
-    Returns True if the content is specifically about Goals PS or related entities.
+    Returns True if the content is specifically about Goals Plastic Surgery.
 
-    Key insight: RSS snippets (Google News, Bing) are often just the publication name
-    ("NBC News"), NOT the article body. If the search query itself was a brand term,
-    trust the result — Google/Bing only return it because the article body matched.
+    Two-layer check:
+    1. Title must contain a brand signal — catches search engines returning off-topic
+       results (e.g. Google treating 'Goals Plastic Surgery' as three separate words
+       and returning soccer articles about 'goals').
+    2. If the title is clean, also trust unambiguous keywords in snippet/source.
+
+    NOTE: connectors now use exact quoted search, so this is a safety net.
     """
-    # If the matched keyword is itself a brand term, trust the search engine's result
-    kw = matched_keyword.lower()
-    if any(term in kw for term in BRAND_TERMS):
+    title_lower   = title.lower()
+    snippet_lower = (snippet or "").lower()
+    full_text     = title_lower + " " + snippet_lower
+
+    # Hard check: title must contain at least one brand signal
+    # (prevents off-topic articles slipping through on generic words like "goals")
+    title_ok = any(term in title_lower for term in BRAND_TERMS)
+    if title_ok:
         return True
-    # Otherwise fall back to text scanning of title + snippet
-    text = (title + " " + (snippet or "")).lower()
-    return any(term in text for term in BRAND_TERMS)
+
+    # Unambiguous single-word terms — safe to check across full text
+    UNAMBIGUOUS = ["flexsculpt", "doublebbl", "goalsplasticsurgery", "voskin"]
+    if any(term in full_text for term in UNAMBIGUOUS):
+        return True
+
+    return False
 
 
 def _normalize_url(url: str) -> str:
