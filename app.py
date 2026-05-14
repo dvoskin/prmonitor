@@ -234,6 +234,70 @@ def api_scan_status():
     return jsonify(state)
 
 
+@app.route("/api/debug-scan")
+def api_debug_scan():
+    """
+    Runs ONE connector for ONE keyword and returns raw results.
+    Use this to diagnose live scan issues without touching the DB.
+    Visit: /api/debug-scan
+    """
+    import traceback
+    out = {}
+
+    # 1. Test outbound HTTP
+    try:
+        import requests as _req
+        r = _req.get("https://news.google.com/rss/search?q=goals+plastic+surgery&hl=en-US&gl=US&ceid=US:en", timeout=10)
+        out["http_status"] = r.status_code
+        out["http_bytes"]  = len(r.content)
+    except Exception as e:
+        out["http_error"] = str(e)
+
+    # 2. Test Google News RSS connector
+    try:
+        from connectors.google_news_rss import search_google_news_rss
+        results = search_google_news_rss("Goals Plastic Surgery")
+        out["gnews_total"] = len(results)
+        out["gnews_sample"] = [{"title": r["title"][:80], "snippet": r.get("snippet","")[:60]} for r in results[:3]]
+    except Exception as e:
+        out["gnews_error"] = traceback.format_exc()
+
+    # 3. Check brand filter
+    try:
+        from scanner import _is_brand_relevant
+        passed = [r for r in results if _is_brand_relevant(r.get("title",""), r.get("snippet",""), r.get("matched_keyword",""))]
+        out["brand_filter_pass"] = len(passed)
+        out["brand_filter_blocked"] = len(results) - len(passed)
+    except Exception as e:
+        out["brand_filter_error"] = str(e)
+
+    # 4. Check dedup — how many would be new vs already in DB
+    try:
+        import re
+        def _nu(u): return re.sub(r"[?#].*","",u.rstrip("/"))
+        def _tk(t): return re.sub(r"[^a-z0-9 ]","",t.lower())[:60].strip()
+        with get_db() as conn:
+            existing_urls   = {row[0] for row in conn.execute("SELECT url FROM mentions WHERE url IS NOT NULL").fetchall()}
+            existing_titles = {_tk(row[0]) for row in conn.execute("SELECT title FROM mentions").fetchall()}
+        new = [r for r in passed if _nu(r.get("url","")) not in existing_urls and _tk(r.get("title","")) not in existing_titles]
+        out["dedup_would_be_new"] = len(new)
+        out["dedup_blocked"]      = len(passed) - len(new)
+        out["dedup_new_sample"]   = [r["title"][:80] for r in new[:5]]
+    except Exception as e:
+        out["dedup_error"] = str(e)
+
+    # 5. DB path + mention count
+    try:
+        from db import DB_PATH
+        out["db_path"] = DB_PATH
+        with get_db() as conn:
+            out["db_total_mentions"] = conn.execute("SELECT COUNT(*) FROM mentions").fetchone()[0]
+    except Exception as e:
+        out["db_error"] = str(e)
+
+    return jsonify(out)
+
+
 @app.route("/api/mentions", methods=["GET", "POST"])
 def api_mentions():
     if request.method == "POST":
