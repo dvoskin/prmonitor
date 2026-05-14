@@ -22,18 +22,14 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "goals-pr-monitor-dev-key")
 
 # ── Initialize DB at import time so gunicorn picks it up ─────────────────────
-# (When running via `python3 app.py` this also runs, which is fine — init_db
-#  uses CREATE TABLE IF NOT EXISTS so it's always safe to call.)
-with app.app_context():
-    from db import init_db, seed_db, get_db as _get_db
-    init_db()
-    with _get_db() as _c:
-        _count = _c.execute("SELECT COUNT(*) FROM mentions").fetchone()[0]
-    if _count == 0:
-        seed_db()
-        print("✅ Fresh database seeded with sample mentions")
-    else:
-        print(f"✅ Database ready — {_count} mentions loaded")
+init_db()
+with get_db() as _c:
+    _count = _c.execute("SELECT COUNT(*) FROM mentions").fetchone()[0]
+if _count == 0:
+    seed_db()
+    print("✅ Fresh database seeded")
+else:
+    print(f"✅ Database ready — {_count} mentions loaded")
 
 # ── Background scan state ────────────────────────────────────────────────────
 _scan_lock  = threading.Lock()
