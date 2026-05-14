@@ -100,7 +100,7 @@ def mentions_page():
     source    = request.args.get("source", "")
     status    = request.args.get("status", "")
     search    = request.args.get("search", "")
-    sort      = request.args.get("sort", "score")
+    sort      = request.args.get("sort", "post_date")
     page      = int(request.args.get("page", 1))
     page_size = 25
 

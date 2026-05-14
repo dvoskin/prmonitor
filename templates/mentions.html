@@ -53,9 +53,9 @@
   <!-- Sort -->
   <div style="position:relative;flex-shrink:0;">
     <select id="f-sort" class="inp" style="width:158px;padding-right:10px;cursor:pointer;" onchange="applyFilters()">
-      <option value="score"      {% if sort == 'score' %}selected{% endif %}>↓ Impact Score</option>
-      <option value="post_date"  {% if sort == 'post_date' %}selected{% endif %}>↓ Post Date</option>
+      <option value="post_date"  {% if sort == 'post_date' %}selected{% endif %}>↓ Published Date</option>
       <option value="found_date" {% if sort == 'found_date' %}selected{% endif %}>↓ Date Found</option>
+      <option value="score"      {% if sort == 'score' %}selected{% endif %}>↓ Impact Score</option>
     </select>
   </div>
 
@@ -104,10 +104,13 @@
           <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:100px;" class="hide-sm">Risk</th>
           <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:70px;" class="hide-sm">Flags</th>
           <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:108px;" class="hide-sm">Status</th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:96px;" class="hide-sm">
-            {% if sort == 'post_date' %}Post Date{% elif sort == 'found_date' %}Found{% else %}Date{% endif %}
+          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:110px;cursor:pointer;" class="hide-sm" onclick="setSortAndGo('post_date')" title="Sort by published date">
+            Published {% if sort == 'post_date' %}<span style="color:var(--accent);">↓</span>{% endif %}
           </th>
-          <th style="width:32px;"></th>
+          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:96px;cursor:pointer;" class="hide-sm" onclick="setSortAndGo('found_date')" title="Sort by date found">
+            Found {% if sort == 'found_date' %}<span style="color:var(--accent);">↓</span>{% endif %}
+          </th>
+          <th style="width:40px;"></th>
         </tr>
       </thead>
       <tbody>
@@ -127,6 +130,7 @@
                 <div class="show-sm-only" style="display:none;gap:5px;margin-top:6px;flex-wrap:wrap;align-items:center;">
                   <span style="font-size:.72rem;font-weight:700;color:{{ m.sentiment_color }};">{{ m.sentiment or '—' }}</span>
                   <span class="badge badge-{{ rl }}" style="font-size:.65rem;">{{ rl|capitalize }}</span>
+                  {% if m.published_at %}<span style="font-size:.7rem;color:var(--text-3);">{{ m.published_at[:10] }}</span>{% endif %}
                   {% if m.needs_legal_review %}<span title="Legal" style="font-size:.8rem;">⚖</span>{% endif %}
                   {% if m.is_opportunity %}<span title="Opp" style="font-size:.8rem;">⭐</span>{% endif %}
                 </div>
@@ -151,21 +155,24 @@
             <span class="badge badge-{{ m.status or 'new' }}">{{ (m.status or 'new')|capitalize }}</span>
           </td>
           <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;font-size:.73rem;color:var(--text-3);white-space:nowrap;font-weight:500;" class="hide-sm">
-            {% if sort == 'post_date' %}
-              {{ m.published_at[:10] if m.published_at else '—' }}
+            {% if m.published_at %}
+              <span style="{% if sort == 'post_date' %}color:var(--text-2);font-weight:600;{% endif %}">{{ m.published_at[:10] }}</span>
             {% else %}
-              {{ m.discovered_at[:10] if m.discovered_at else '—' }}
+              <span style="color:var(--text-4);font-style:italic;">—</span>
             {% endif %}
           </td>
-          <td style="padding:13px 16px 13px 4px;border-bottom:1px solid #f3f5f8;">
+          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;font-size:.73rem;color:var(--text-3);white-space:nowrap;font-weight:500;" class="hide-sm">
+            {{ m.discovered_at[:10] if m.discovered_at else '—' }}
+          </td>
+          <td style="padding:13px 10px 13px 4px;border-bottom:1px solid #f3f5f8;">
             {% if m.url %}
-            <a href="{{ m.url }}" target="_blank" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-3);font-size:.8rem;text-decoration:none;transition:all .12s;" onmouseover="this.style.background='var(--accent-bg)';this.style.color='var(--accent-dk)';this.style.borderColor='var(--accent)'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">↗</a>
+            <a href="{{ m.url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="{{ m.url }}" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-3);font-size:.85rem;text-decoration:none;transition:all .12s;flex-shrink:0;" onmouseover="this.style.background='var(--accent-bg)';this.style.color='var(--accent-dk)';this.style.borderColor='var(--accent)'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">↗</a>
             {% endif %}
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="8" style="padding:64px;text-align:center;">
+          <td colspan="9" style="padding:64px;text-align:center;">
             <div style="font-size:2.5rem;margin-bottom:12px;opacity:.4;">🔍</div>
             <div style="font-size:.95rem;font-weight:700;color:var(--text-2);margin-bottom:6px;">No mentions found</div>
             <div style="font-size:.83rem;color:var(--text-3);">
@@ -264,6 +271,11 @@
 {% endblock %}
 {% block scripts %}
 <script>
+  function setSortAndGo(sortVal) {
+    document.getElementById('f-sort').value = sortVal;
+    applyFilters();
+  }
+
   function applyFilters() {
     const params = new URLSearchParams();
     const view = '{{ view }}';
