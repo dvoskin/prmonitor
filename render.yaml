@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: goals-pr-monitor
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 4 --worker-class gthread --bind 0.0.0.0:$PORT --timeout 120
+    plan: starter          # $7/mo — keeps the app always on + persistent disk
+    disk:
+      name: pr-monitor-data
+      mountPath: /data      # SQLite lives here — survives deploys & restarts
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /data/pr_monitor.db
+      - key: SECRET_KEY
+        generateValue: true  # Render auto-generates a secure random key
+      - key: ANTHROPIC_API_KEY
+        sync: false          # Set this manually in Render dashboard
+      - key: SERPER_API_KEY
+        sync: false

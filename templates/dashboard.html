@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — PR Impact Monitor{% endblock %}
+{% block content %}
+
+<!-- Page header -->
+<div style="margin-bottom:24px;">
+  <h1 style="font-size:1.45rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;">Reputation Dashboard</h1>
+  <p style="font-size:.84rem;color:var(--text-3);margin-top:3px;font-weight:500;">Goals Plastic Surgery · Real-time PR Intelligence</p>
+</div>
+
+<!-- ── Stat cards ── -->
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px;" id="stat-grid">
+  {% for label, value, icon, bg, fg, bdr, href in [
+    ('Total',        stats.total,         '◎', '#eef2ff', '#2563eb', '#c7d5f9', '/mentions'),
+    ('New',          stats.new,           '●', '#fefce8', '#a16207', '#ecd970', '/mentions?view=new'),
+    ('Negative',     stats.negative,      '↘', '#fff1f2', '#be123c', '#fda4af', '/mentions?view=negative'),
+    ('Critical',     stats.critical,      '⚡', '#ffeaea', '#9b0000', '#f5a0a0', '/mentions?view=critical'),
+    ('Opportunity',  stats.opportunities, '◆', '#e6f9ee', '#14692a', '#a3d9b5', '/mentions?view=opportunities'),
+    ('Legal Queue',  stats.legal_queue,   '⚖', '#f3eeff', '#5b21b6', '#c4b5fd', '/mentions?view=legal'),
+  ] %}
+  <a href="{{ href }}" style="text-decoration:none;display:block;">
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s,border-color .15s;height:100%;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.borderColor='var(--border-strong)'" onmouseout="this.style.boxShadow='';this.style.borderColor='var(--border)'">
+      <div style="width:36px;height:36px;border-radius:9px;background:{{ bg }};border:1.5px solid {{ bdr }};display:flex;align-items:center;justify-content:center;font-size:1rem;color:{{ fg }};">{{ icon }}</div>
+      <div>
+        <div style="font-size:2rem;font-weight:800;color:{{ fg }};line-height:1;font-variant-numeric:tabular-nums;">{{ value }}</div>
+        <div style="font-size:.72rem;color:var(--text-3);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">{{ label }}</div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- ── Two column ── -->
+<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;" id="dash-grid">
+
+  <!-- Highest Impact -->
+  <div class="card" style="overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1.5px solid var(--border);background:#fafbfc;">
+      <div>
+        <div style="font-size:.92rem;font-weight:700;color:var(--text-1);">Highest Impact Mentions</div>
+        <div style="font-size:.73rem;color:var(--text-3);margin-top:2px;font-weight:500;">Ranked by PR Impact Score</div>
+      </div>
+      <a href="/mentions" style="font-size:.78rem;color:var(--accent-dk);font-weight:700;text-decoration:none;background:var(--accent-bg);padding:5px 12px;border-radius:7px;border:1px solid #e8c87a;" onmouseover="this.style.background='#f5e8c8'" onmouseout="this.style.background='var(--accent-bg)'">View all →</a>
+    </div>
+    {% for m in mentions %}
+    {% set rl = m.risk_level or 'low' %}
+    <div onclick="window.location='/mentions/{{ m.id }}'" style="display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid #f3f5f8;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
+      <div class="score-box score-{{ rl }}">{{ m.impact_score or '—' }}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.84rem;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+        <div style="font-size:.73rem;color:var(--text-3);margin-top:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.platform or m.source_name }}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:.76rem;font-weight:700;color:{{ m.sentiment_color }};text-transform:capitalize;">{{ m.sentiment or '—' }}</div>
+        <div style="font-size:.68rem;color:var(--text-4);margin-top:2px;font-weight:500;">{{ m.discovered_at[:10] if m.discovered_at else '' }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div style="padding:56px;text-align:center;">
+      <div style="font-size:2.2rem;margin-bottom:10px;opacity:.5;">🔎</div>
+      <div style="font-size:.9rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">No mentions yet</div>
+      <div style="font-size:.82rem;color:var(--text-3);">Click <strong style="color:var(--accent-dk);">Scan Now</strong> in the top bar to start.</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Right: Alerts + Legend -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Alerts -->
+    <div class="card" style="overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1.5px solid var(--border);background:#fafbfc;">
+        <div style="font-size:.92rem;font-weight:700;color:var(--text-1);">Active Alerts</div>
+        {% if alerts %}
+        <span style="background:#ffeaea;color:#9b0000;border:1px solid #f5a0a0;font-size:.65rem;border-radius:6px;padding:2px 8px;font-weight:800;">{{ alerts|length }}</span>
+        {% endif %}
+      </div>
+      {% for a in alerts %}
+      {% set dot = {'critical':'#9b0000','high':'#9a2e00','warning':'#8f5e00','info':'#1a3a9f'} %}
+      <a href="/mentions/{{ a.mention_id_ref or '' }}" style="display:flex;gap:10px;align-items:flex-start;padding:13px 16px;border-bottom:1px solid #f3f5f8;text-decoration:none;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
+        <span style="width:8px;height:8px;border-radius:50%;background:{{ dot.get(a.severity,'#9ba5b5') }};flex-shrink:0;margin-top:4px;"></span>
+        <div style="min-width:0;">
+          <div style="font-size:.79rem;font-weight:700;color:var(--text-1);line-height:1.4;">{{ a.title }}</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ a.body or '' }}</div>
+        </div>
+      </a>
+      {% else %}
+      <div style="padding:36px 16px;text-align:center;">
+        <div style="font-size:1.6rem;margin-bottom:6px;">✅</div>
+        <div style="font-size:.82rem;color:var(--text-3);font-weight:500;">No active alerts</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Score legend -->
+    <div class="card" style="padding:18px;">
+      <div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:13px;">Impact Score Guide</div>
+      {% for sr, lvl, bg, fg, bdr, desc in [
+        ('0–24',   'Low Risk',  '#e6f9ee','#14692a','#a3d9b5','Monitor — no action'),
+        ('25–49',  'Moderate',  '#fef8e7','#8f5e00','#f0cc72','Assign to PR team'),
+        ('50–74',  'High Risk', '#fff1eb','#9a2e00','#f5ab82','Escalate — respond'),
+        ('75–100', 'Critical',  '#ffeaea','#9b0000','#f5a0a0','Immediate action'),
+      ] %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f5f8;">
+        <div style="width:42px;text-align:center;font-size:.72rem;font-weight:800;color:{{ fg }};background:{{ bg }};border:1.5px solid {{ bdr }};border-radius:6px;padding:3px 0;flex-shrink:0;">{{ sr }}</div>
+        <div>
+          <div style="font-size:.79rem;font-weight:700;color:{{ fg }};">{{ lvl }}</div>
+          <div style="font-size:.71rem;color:var(--text-3);font-weight:500;">{{ desc }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+<style>
+  @media (max-width: 900px) { #dash-grid { grid-template-columns:1fr !important; } }
+  @media (max-width: 600px) { #stat-grid { grid-template-columns:repeat(2,1fr) !important; } }
+  @media (max-width: 380px) { #stat-grid { grid-template-columns:1fr 1fr !important; gap:10px !important; } }
+</style>
+{% endblock %}

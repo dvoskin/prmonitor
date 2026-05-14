@@ -1,0 +1,25 @@
+# Database — keep local DB out of repo; Render uses its own persistent disk
+*.db
+*.db-shm
+*.db-wal
+
+# Environment secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Node leftovers (from earlier Next.js scaffold)
+node_modules/
+.next/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

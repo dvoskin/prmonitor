@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Settings — PR Impact Monitor{% endblock %}
+{% block content %}
+
+<div style="max-width:740px;">
+
+  <div style="margin-bottom:24px;">
+    <h1 style="font-size:1.45rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;">Settings</h1>
+    <p style="font-size:.84rem;color:var(--text-3);margin-top:3px;font-weight:500;">Manage monitored keywords and source connections</p>
+  </div>
+
+  <!-- Add Keyword -->
+  <div class="card" style="padding:22px;margin-bottom:16px;">
+    <div style="font-size:.9rem;font-weight:700;color:var(--text-1);margin-bottom:14px;">Add Keyword</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <input id="kw-phrase" class="inp" placeholder="e.g. Goals Plastic Surgery bad reviews" onkeydown="if(event.key==='Enter')addKeyword()" style="flex:1;min-width:200px;" />
+      <select id="kw-cat" class="inp" style="width:148px;cursor:pointer;">
+        {% for c in ['brand','person','location','procedure','competitor'] %}
+        <option value="{{ c }}">{{ c|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <button onclick="addKeyword()" class="btn-primary" style="flex-shrink:0;height:42px;">＋ Add</button>
+    </div>
+    <div id="kw-error" style="display:none;color:#9b0000;font-size:.79rem;margin-top:9px;background:#ffeaea;border:1.5px solid #f5a0a0;padding:8px 13px;border-radius:7px;font-weight:600;"></div>
+  </div>
+
+  <!-- Keywords by category -->
+  {% set cat_styles = {
+    'brand':      ('#1a3a9f','#e8f0fe','#9bb4f5'),
+    'person':     ('#5b21b6','#f3eeff','#c4b5fd'),
+    'location':   ('#14692a','#e6f9ee','#a3d9b5'),
+    'procedure':  ('#8f5e00','#fef8e7','#f0cc72'),
+    'competitor': ('#9b0000','#ffeaea','#f5a0a0'),
+  } %}
+  {% for cat, kws in keywords | groupby('category') %}
+  {% set fg, bg, bdr = cat_styles.get(cat, ('#3d4554','#f3f4f6','#c8ced8')) %}
+  <div class="card" style="overflow:hidden;margin-bottom:13px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1.5px solid var(--border);background:#f7f8fa;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="background:{{ bg }};color:{{ fg }};border:1.5px solid {{ bdr }};border-radius:6px;padding:3px 11px;font-size:.72rem;font-weight:800;text-transform:capitalize;letter-spacing:.02em;">{{ cat }}</span>
+        <span style="font-size:.78rem;color:var(--text-3);font-weight:600;">{{ kws|list|length }} keyword{{ 's' if kws|list|length != 1 else '' }}</span>
+      </div>
+    </div>
+    {% for kw in kws %}
+    <div id="kw-{{ kw.id }}" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#f7f8fa'" onmouseout="this.style.background=''">
+      <div style="flex:1;min-width:0;">
+        <span style="font-size:.86rem;font-weight:{% if kw.enabled %}600{% else %}400{% endif %};color:{% if kw.enabled %}var(--text-1){% else %}var(--text-4){% endif %};{% if not kw.enabled %}text-decoration:line-through;{% endif %}">{{ kw.phrase }}</span>
+      </div>
+      <button onclick="toggleKeyword('{{ kw.id }}', {{ 0 if kw.enabled else 1 }})"
+        style="font-size:.73rem;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer;transition:all .12s;white-space:nowrap;
+          background:{% if kw.enabled %}var(--accent){% else %}var(--bg){% endif %};
+          color:{% if kw.enabled %}#fff{% else %}var(--text-3){% endif %};
+          border:1.5px solid {% if kw.enabled %}var(--accent-dk){% else %}var(--border){% endif %};">
+        {{ '● Active' if kw.enabled else '○ Off' }}
+      </button>
+      <button onclick="deleteKeyword('{{ kw.id }}')"
+        style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text-3);font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;"
+        onmouseover="this.style.background='#ffeaea';this.style.borderColor='#f5a0a0';this.style.color='#9b0000'"
+        onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'"
+        title="Delete">✕</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <!-- Scoring Config -->
+  <div class="card" style="padding:20px;margin-bottom:13px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="width:40px;height:40px;background:#fef8e7;border:1.5px solid #f0cc72;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">⚖</div>
+      <div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--text-1);margin-bottom:5px;">Scoring Configuration</div>
+        <div style="font-size:.83rem;color:var(--text-2);line-height:1.65;font-weight:400;">
+          Edit <code style="color:#8f5e00;background:#fef8e7;border:1.5px solid #f0cc72;padding:2px 8px;border-radius:5px;font-size:.78rem;font-family:monospace;">scoring_config.py</code> to adjust source weights, sentiment multipliers, risk bonuses, and alert thresholds. Changes take effect on next scan.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Connections -->
+  <div class="card" style="overflow:hidden;">
+    <div style="padding:15px 22px;border-bottom:1.5px solid var(--border);background:#f7f8fa;">
+      <div style="font-size:.9rem;font-weight:700;color:var(--text-1);">Data Sources & Connections</div>
+      <div style="font-size:.76rem;color:var(--text-3);margin-top:2px;font-weight:500;">Add keys to <code style="background:var(--bg);border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-size:.72rem;">.env</code> and restart the app</div>
+    </div>
+    {% for name, status_label, is_active, note, key in [
+      ('Google News RSS',          'Active · Free',   true,  'Primary news source — no key required',                           '—'),
+      ('Bing News RSS',            'Active · Free',   true,  'Secondary news coverage — no key required',                      '—'),
+      ('Reddit',                   'Active · Free',   true,  'Public JSON search — no key required for basic use',             '—'),
+      ('YouTube',                  'Active · Free',   true,  'ytInitialData extraction — no key required',                     '—'),
+      ('Review Sites',             'Active · Free',   true,  'RealSelf, BBB, Healthgrades via Google News site: operator',     '—'),
+      ('Podcasts',                 'Active · Free',   true,  'iTunes API + Spotify/Apple/Podchaser via Google News',           '—'),
+      ('Serper.dev (Google+News)', 'Optional · Paid', false, 'Higher-quality Google results — 2,500 free queries/month trial', 'SERPER_API_KEY'),
+      ('Anthropic Claude AI',      'Optional · Paid', false, 'Full AI analysis — rule-based fallback active without key',      'ANTHROPIC_API_KEY'),
+    ] %}
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 22px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#f7f8fa'" onmouseout="this.style.background=''">
+      <div style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1;">
+        <span style="width:9px;height:9px;border-radius:50%;background:{% if is_active %}#16a34a{% else %}#c8ced8{% endif %};flex-shrink:0;margin-top:5px;"></span>
+        <div style="min-width:0;">
+          <div style="font-size:.84rem;font-weight:700;color:var(--text-1);">{{ name }}</div>
+          <div style="font-size:.75rem;color:var(--text-3);margin-top:2px;font-weight:500;">{{ note }}</div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:.73rem;font-weight:700;color:{% if is_active %}#14692a{% else %}var(--text-3){% endif %};margin-bottom:4px;white-space:nowrap;">{{ status_label }}</div>
+        {% if key != '—' %}
+        <code style="font-size:.69rem;color:var(--text-3);background:var(--bg);border:1.5px solid var(--border);padding:2px 7px;border-radius:5px;font-family:monospace;">{{ key }}</code>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  async function addKeyword() {
+    const phrase = document.getElementById('kw-phrase').value.trim();
+    const category = document.getElementById('kw-cat').value;
+    const errEl = document.getElementById('kw-error');
+    errEl.style.display = 'none';
+    if (!phrase) { errEl.style.display='block'; errEl.textContent='Please enter a keyword phrase.'; return; }
+    const r = await fetch('/api/keywords', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phrase, category})
+    });
+    if (r.ok) { window.location.reload(); }
+    else { const d = await r.json(); errEl.style.display='block'; errEl.textContent = d.error || 'Failed to add.'; }
+  }
+
+  async function toggleKeyword(id, newEnabled) {
+    await fetch('/api/keywords', {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id, enabled: newEnabled})
+    });
+    window.location.reload();
+  }
+
+  async function deleteKeyword(id) {
+    if (!confirm('Delete this keyword? This cannot be undone.')) return;
+    await fetch('/api/keywords', {
+      method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})
+    });
+    const el = document.getElementById(`kw-${id}`);
+    if (el) {
+      el.style.transition = 'opacity .2s, max-height .25s, padding .25s';
+      el.style.overflow = 'hidden';
+      el.style.opacity = '0';
+      el.style.maxHeight = el.offsetHeight + 'px';
+      requestAnimationFrame(() => { el.style.maxHeight = '0'; el.style.padding = '0 20px'; });
+      setTimeout(() => el.remove(), 280);
+    }
+  }
+</script>
+{% endblock %}

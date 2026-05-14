@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}{{ m.title[:50] }} — PR Impact Monitor{% endblock %}
+{% block content %}
+
+<!-- Back -->
+<a href="javascript:history.back()" style="display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-3);text-decoration:none;margin-bottom:18px;font-weight:600;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);transition:all .12s;" onmouseover="this.style.background='var(--bg)';this.style.color='var(--text-1)'" onmouseout="this.style.background='var(--surface)';this.style.color='var(--text-3)'">
+  ← Back
+</a>
+
+{% set rl = m.risk_level or 'low' %}
+{% set sb = {'low':'#e6f9ee','moderate':'#fef8e7','high':'#fff1eb','critical':'#ffeaea'} %}
+{% set sf = {'low':'#14692a','moderate':'#8f5e00','high':'#9a2e00','critical':'#9b0000'} %}
+{% set sd = {'low':'#a3d9b5','moderate':'#f0cc72','high':'#f5ab82','critical':'#f5a0a0'} %}
+
+<!-- Hero card -->
+<div class="card" style="padding:22px;margin-bottom:16px;">
+  <div style="display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;">
+
+    <!-- Left: content -->
+    <div style="flex:1;min-width:240px;">
+      <!-- Source tag + date -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <span style="background:var(--bg);border:1.5px solid var(--border);border-radius:7px;padding:3px 10px;font-size:.73rem;color:var(--text-2);font-weight:700;">{{ m.platform or m.source_name }}</span>
+        {% if m.author %}<span style="font-size:.73rem;color:var(--text-3);font-weight:500;">{{ m.author }}</span>{% endif %}
+        {% if m.published_at %}
+          <span style="font-size:.73rem;color:var(--text-3);font-weight:500;">Published {{ m.published_at[:10] }}</span>
+        {% endif %}
+        {% if m.url %}
+          <a href="{{ m.url }}" target="_blank" style="font-size:.78rem;color:var(--accent-dk);font-weight:700;text-decoration:none;background:var(--accent-bg);padding:3px 10px;border-radius:7px;border:1px solid #e8c87a;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.background='#f5e8c8'" onmouseout="this.style.background='var(--accent-bg)'">↗ Source</a>
+        {% endif %}
+      </div>
+
+      <h1 style="font-size:1.05rem;font-weight:800;color:var(--text-1);line-height:1.5;margin-bottom:13px;letter-spacing:-.01em;">{{ m.title }}</h1>
+
+      <!-- Badges -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
+        <span class="badge badge-{{ rl }}">{{ rl|capitalize }} Risk</span>
+        <span class="badge" style="border-color:{{ m.sentiment_color }}55;background:{{ m.sentiment_color }}11;color:{{ m.sentiment_color }};">{{ (m.sentiment or 'neutral')|capitalize }}</span>
+        {% if m.needs_legal_review %}<span class="badge" style="border-color:#c4b5fd;background:#f3eeff;color:#5b21b6;">⚖ Legal Review</span>{% endif %}
+        {% if m.notify_leadership %}<span class="badge" style="border-color:#f5a0a0;background:#ffeaea;color:#9b0000;">🚨 Leadership</span>{% endif %}
+        {% if m.is_opportunity %}<span class="badge" style="border-color:#f0cc72;background:#fef8e7;color:#8f5e00;">★ Opportunity</span>{% endif %}
+        {% if m.is_threat %}<span class="badge" style="border-color:#f5ab82;background:#fff1eb;color:#9a2e00;">⚠ Threat</span>{% endif %}
+        {% if m.public_response %}<span class="badge" style="border-color:#9bb4f5;background:#e8f0fe;color:#1a3a9f;">✓ Public Response</span>{% endif %}
+      </div>
+
+      <!-- Snippet -->
+      {% if m.snippet %}
+      <blockquote style="border-left:3px solid var(--border-strong);padding:10px 14px;background:var(--bg);border-radius:0 9px 9px 0;font-size:.84rem;color:var(--text-2);line-height:1.7;font-style:italic;margin:0;">
+        {{ m.snippet[:500] }}{% if m.snippet|length > 500 %}<span style="color:var(--text-4);">…</span>{% endif %}
+      </blockquote>
+      {% endif %}
+
+      {% if m.keywords %}
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;">
+        {% for k in m.keywords %}
+        <span style="background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:2px 9px;font-size:.71rem;color:var(--text-3);font-weight:600;">{{ k.phrase }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right: Score gauge -->
+    <div style="flex-shrink:0;text-align:center;min-width:110px;">
+      <div style="width:96px;height:96px;border-radius:50%;background:{{ sb.get(rl,'#f3f5f8') }};border:4px solid {{ sd.get(rl,'#dde1e8') }};display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 4px 16px {{ sd.get(rl,'#dde1e8') }}88;">
+        <div style="font-size:2.1rem;font-weight:800;color:{{ sf.get(rl,'#3d4554') }};line-height:1;font-variant-numeric:tabular-nums;">{{ m.impact_score or '—' }}</div>
+        <div style="font-size:.58rem;color:{{ sf.get(rl,'#6b7585') }};font-weight:700;opacity:.7;margin-top:1px;">/ 100</div>
+      </div>
+      <div style="font-size:.74rem;font-weight:800;color:{{ sf.get(rl,'#3d4554') }};">{{ rl|capitalize }} Risk</div>
+      <div style="font-size:.68rem;color:var(--text-4);margin-top:2px;font-weight:500;">PR Impact Score</div>
+      <div style="margin-top:10px;height:5px;background:#eef0f3;border-radius:99px;overflow:hidden;width:96px;margin-left:auto;margin-right:auto;">
+        <div style="height:100%;width:{{ m.impact_score or 0 }}%;background:{{ sd.get(rl,'#c5cad4') }};border-radius:99px;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Two-column body -->
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 284px;gap:16px;align-items:start;" id="detail-grid">
+
+  <!-- LEFT -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- AI Analysis -->
+    <div class="card" style="padding:22px;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:18px;display:flex;align-items:center;gap:7px;">
+        <span style="color:var(--accent-dk);">✦</span> AI Analysis
+      </div>
+      {% if m.ai_summary or m.why_it_matters or m.recommended_action %}
+        {% for label, val, icon in [
+          ('Summary',            m.ai_summary,         '◎'),
+          ('Why It Matters',     m.why_it_matters,      '⚡'),
+          ('Recommended Action', m.recommended_action,  '→'),
+        ] %}
+        {% if val %}
+        <div style="margin-bottom:16px;{% if not loop.last %}padding-bottom:16px;border-bottom:1.5px solid var(--border);{% endif %}">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
+            <span style="font-size:.7rem;color:var(--accent-dk);font-weight:800;">{{ icon }}</span>
+            <span style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;">{{ label }}</span>
+          </div>
+          <div style="font-size:.86rem;color:var(--text-2);line-height:1.72;font-weight:400;">{{ val }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      {% else %}
+        <div style="text-align:center;padding:24px;color:var(--text-4);">
+          <div style="font-size:1.5rem;margin-bottom:8px;">🤖</div>
+          <div style="font-size:.82rem;font-weight:500;">No AI analysis yet.</div>
+          <div style="font-size:.77rem;margin-top:4px;">Add an Anthropic API key in <strong>.env</strong> for full analysis.</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Score Factors -->
+    {% if score_factors %}
+    <div class="card" style="padding:22px;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;">Score Factor Breakdown</div>
+      {% for key, val in score_factors.items() %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f3f5f8;">
+        <span style="font-size:.81rem;color:var(--text-2);font-weight:500;text-transform:capitalize;">{{ key.replace('_',' ') }}</span>
+        <span style="font-size:.8rem;color:var(--text-1);font-family:monospace;font-weight:700;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:2px 9px;">{{ val }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Notes -->
+    <div class="card" style="padding:22px;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;">Internal Notes</div>
+      <div id="notes-list">
+        {% if not m.notes %}
+        <div id="no-notes-msg" style="text-align:center;padding:20px;color:var(--text-4);font-size:.83rem;font-weight:500;">No notes yet — add one below</div>
+        {% endif %}
+        {% for n in m.notes %}
+        <div style="border-bottom:1.5px solid var(--border);padding:12px 0;">
+          <div style="font-size:.85rem;color:var(--text-1);line-height:1.65;font-weight:400;">{{ n.content }}</div>
+          <div style="font-size:.71rem;color:var(--text-4);margin-top:5px;display:flex;align-items:center;gap:6px;font-weight:500;">
+            <span>{{ n.created_at[:16].replace('T',' ') }}</span>
+            {% if n.is_privileged %}<span style="color:#5b21b6;background:#f3eeff;border:1px solid #c4b5fd;border-radius:4px;padding:0 6px;font-size:.65rem;font-weight:700;">⚖ Privileged</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <input id="note-inp" class="inp" placeholder="Add a note… (Enter to save)" onkeydown="if(event.key==='Enter')addNote()" style="font-size:.84rem;" />
+        <button onclick="addNote()" class="btn-primary" style="height:42px;padding:0 18px;font-size:.81rem;flex-shrink:0;">Add</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- Status -->
+    <div class="card" style="padding:18px;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">Status</div>
+      <select id="status-sel" class="inp" style="font-size:.84rem;" onchange="updateField('status', this.value)">
+        {% for s in ['new','reviewing','escalated','resolved','ignored','archived'] %}
+        <option value="{{ s }}" {% if m.status == s %}selected{% endif %}>{{ s|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <div id="status-saved" style="display:none;font-size:.73rem;color:#14692a;margin-top:7px;text-align:center;font-weight:700;background:#e6f9ee;border:1px solid #a3d9b5;border-radius:6px;padding:4px 0;">✓ Saved</div>
+    </div>
+
+    <!-- Action flags -->
+    <div class="card" style="padding:18px;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Action Flags</div>
+      {% for field, label, icon, fg, bg, bdr in [
+        ('needs_legal_review','Legal Review',     '⚖','#5b21b6','#f3eeff','#c4b5fd'),
+        ('notify_leadership', 'Notify Leadership','🚨','#9b0000','#ffeaea','#f5a0a0'),
+        ('public_response',   'Public Response',  '✓','#1a3a9f','#e8f0fe','#9bb4f5'),
+        ('is_opportunity',    'Mark Opportunity', '◆','#8f5e00','#fef8e7','#f0cc72'),
+        ('is_threat',         'Mark as Threat',   '⚠','#9a2e00','#fff1eb','#f5ab82'),
+      ] %}
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 0;border-bottom:1px solid #f3f5f8;" onmouseover="this.style.background=''" onmouseout="this.style.background=''">
+        <input type="checkbox" {% if m[field] %}checked{% endif %} onchange="updateField('{{ field }}', this.checked ? 1 : 0)" style="width:17px;height:17px;accent-color:{{ fg }};cursor:pointer;flex-shrink:0;" />
+        <span style="font-size:.92rem;">{{ icon }}</span>
+        <span style="font-size:.81rem;color:var(--text-2);font-weight:600;">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <!-- Metadata -->
+    <div class="card" style="padding:18px;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Metadata</div>
+      {% for label, val in [
+        ('Source',      m.source_name),
+        ('Post Date',   m.published_at[:10] if m.published_at else None),
+        ('Found',       m.discovered_at[:10] if m.discovered_at else None),
+        ('Location',    m.related_location),
+        ('Surgeon',     m.related_surgeon),
+        ('Procedure',   m.related_procedure),
+        ('Engagement',  (m.engagement_count|string + ' ' + (m.engagement_label or '')) if m.engagement_count else None),
+      ] %}
+      {% if val %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f3f5f8;">
+        <span style="font-size:.78rem;color:var(--text-3);font-weight:600;">{{ label }}</span>
+        <span style="font-size:.79rem;color:var(--text-1);font-weight:600;text-align:right;max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ val }}</span>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Activity log -->
+    {% if m.history %}
+    <div class="card" style="padding:18px;">
+      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Activity Log</div>
+      {% for h in m.history %}
+      <div style="display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f5f8;">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--border-strong);flex-shrink:0;margin-top:5px;"></span>
+        <div>
+          <div style="font-size:.79rem;color:var(--text-2);font-weight:600;">
+            <span style="color:var(--text-3);">{{ h.from_status|capitalize }}</span>
+            <span style="color:var(--border-strong);margin:0 5px;">→</span>
+            <span style="color:var(--text-1);">{{ h.to_status|capitalize }}</span>
+          </div>
+          <div style="font-size:.71rem;color:var(--text-4);margin-top:2px;font-weight:500;">{{ h.created_at[:16].replace('T',' ') }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<style>
+  @media (max-width: 900px) { #detail-grid { grid-template-columns:1fr !important; } }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+  const MID = '{{ m.id }}';
+
+  async function updateField(field, value) {
+    try {
+      await fetch(`/api/mentions/${MID}`, {
+        method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({[field]: value})
+      });
+      if (field === 'status') {
+        const el = document.getElementById('status-saved');
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 2200);
+      }
+    } catch(e) {}
+  }
+
+  async function addNote() {
+    const inp = document.getElementById('note-inp');
+    const content = inp.value.trim();
+    if (!content) { inp.focus(); return; }
+    inp.disabled = true;
+    const orig = inp.value;
+    inp.value = '';
+    try {
+      await fetch(`/api/mentions/${MID}/notes`, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({content})
+      });
+      const nm = document.getElementById('no-notes-msg');
+      if (nm) nm.remove();
+      const list = document.getElementById('notes-list');
+      const div = document.createElement('div');
+      div.style.cssText = 'border-bottom:1.5px solid var(--border);padding:12px 0;animation:fadeIn .2s;';
+      div.innerHTML = `
+        <div style="font-size:.85rem;color:var(--text-1);line-height:1.65;">${content}</div>
+        <div style="font-size:.71rem;color:var(--text-4);margin-top:5px;font-weight:500;">just now</div>
+      `;
+      list.prepend(div);
+    } catch(e) { inp.value = orig; }
+    inp.disabled = false;
+    inp.focus();
+  }
+</script>
+{% endblock %}
