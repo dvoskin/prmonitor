@@ -32,6 +32,17 @@ def _parse_pub_date(date_str: str):
         return None
 
 
+def _fix_gnews_url(url: str) -> str:
+    """Convert Google News RSS redirect URLs to browser-friendly article URLs.
+
+    RSS feeds return /rss/articles/CBMi... URLs which don't redirect in browsers.
+    The /articles/CBMi... format opens correctly in Chrome/Firefox with JS redirect.
+    """
+    if url and "news.google.com/rss/articles/" in url:
+        return url.replace("/rss/articles/", "/articles/")
+    return url
+
+
 def search_google_news_rss(query: str) -> list:
     """
     Search Google News RSS for a query. Returns list of mention dicts.
@@ -61,7 +72,7 @@ def search_google_news_rss(query: str) -> list:
 
             results.append({
                 "title":           title,
-                "url":             link,
+                "url":             _fix_gnews_url(link),
                 "snippet":         desc,
                 "author":          source_name_raw,
                 "published_at":    pub_date,

@@ -71,6 +71,13 @@ def _gnews_site_search(query: str, site: str) -> list:
         return []
 
 
+def _fix_gnews_url(url: str) -> str:
+    """Convert Google News RSS redirect URLs to browser-friendly article URLs."""
+    if url and "news.google.com/rss/articles/" in url:
+        return url.replace("/rss/articles/", "/articles/")
+    return url
+
+
 def _is_brand_relevant(title: str, snippet: str) -> bool:
     text = (title + " " + snippet).lower()
     return any(term in text for term in BRAND_TERMS)
@@ -87,7 +94,7 @@ def _item_to_mention(item, source_name: str, platform: str, query: str):
 
     return {
         "title":           title,
-        "url":             link,
+        "url":             _fix_gnews_url(link),
         "snippet":         desc,
         "published_at":    pub_dt,
         "source_name":     source_name,

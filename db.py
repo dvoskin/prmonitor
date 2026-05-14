@@ -118,6 +118,17 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_alerts_read ON alerts(read);
         """)
 
+    # ── Data migrations ───────────────────────────────────────────────────────
+    # Fix Google News RSS redirect URLs → browser-friendly /articles/ format
+    with get_db() as conn:
+        fixed = conn.execute("""
+            UPDATE mentions
+            SET url = REPLACE(url, '/rss/articles/', '/articles/')
+            WHERE url LIKE '%news.google.com/rss/articles/%'
+        """).rowcount
+        if fixed:
+            print(f"✅ URL migration: fixed {fixed} Google News redirect URLs")
+
 
 def seed_db():
     import uuid

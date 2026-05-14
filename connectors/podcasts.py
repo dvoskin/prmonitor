@@ -125,7 +125,7 @@ def _search_gnews_podcasts(query: str) -> list:
                 }
                 results.append({
                     "title":           title,
-                    "url":             link,
+                    "url":             link.replace("/rss/articles/", "/articles/") if "news.google.com/rss/articles/" in link else link,
                     "snippet":         desc,
                     "published_at":    pub_iso,
                     "source_name":     "podcast",
