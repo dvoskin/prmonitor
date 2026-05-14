@@ -22,7 +22,7 @@ from datetime import datetime
 
 from db import get_db
 from ranker import calculate_score
-from ai_analysis import analyze_mention
+from ai_analysis import analyze_mention, reset_scan_counter
 
 # Always-on connectors (zero API keys needed)
 from connectors.google_news_rss import search_google_news_rss
@@ -120,6 +120,7 @@ def _title_key(title: str) -> str:
 
 
 def run_scan() -> dict:
+    reset_scan_counter()   # reset per-scan AI cap
     start_ms = int(time.time() * 1000)
     scan_id  = str(uuid.uuid4())
 

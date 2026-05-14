@@ -44,14 +44,31 @@ def _mock_analysis(title, snippet):
     }
 
 
+# Max mentions that get real AI analysis per scan run.
+# The rest use the instant rule-based mock. Keeps scan time under ~2 min.
+AI_CAP_PER_SCAN = 40
+
+# Tracks how many real AI calls have been made in the current scan
+_ai_calls_this_scan = 0
+
+
+def reset_scan_counter():
+    """Call at the start of each scan to reset the per-scan AI cap."""
+    global _ai_calls_this_scan
+    _ai_calls_this_scan = 0
+
+
 def analyze_mention(title, snippet):
+    global _ai_calls_this_scan
+
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not api_key:
+    if not api_key or _ai_calls_this_scan >= AI_CAP_PER_SCAN:
         return _mock_analysis(title, snippet)
 
     try:
         import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
+        # max_retries=0: don't wait on 429s — fall back to mock immediately
+        client = anthropic.Anthropic(api_key=api_key, max_retries=0)
         prompt = f"""You are a PR intelligence analyst for Goals Plastic Surgery, a multi-location plastic surgery company.
 
 Analyze this online mention and return a JSON object with these exact fields:
@@ -71,12 +88,14 @@ Content: {snippet or '(no additional content)'}
 Return ONLY valid JSON. No markdown fences. No extra text."""
 
         response = client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=600,
+            model="claude-haiku-4-5",
+            max_tokens=400,
             messages=[{"role": "user", "content": prompt}]
         )
         text = response.content[0].text.strip()
-        return json.loads(text)
+        result = json.loads(text)
+        _ai_calls_this_scan += 1
+        return result
     except Exception as e:
         print(f"[AI] Falling back to mock: {e}")
         return _mock_analysis(title, snippet)
