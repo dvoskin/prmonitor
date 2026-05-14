@@ -3,7 +3,7 @@ services:
     name: goals-pr-monitor
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 2 --threads 4 --worker-class gthread --bind 0.0.0.0:$PORT --timeout 120
+    startCommand: gunicorn app:app --workers 1 --threads 8 --worker-class gthread --bind 0.0.0.0:$PORT --timeout 300
     plan: starter          # $7/mo — keeps the app always on + persistent disk
     disk:
       name: pr-monitor-data
