@@ -44,30 +44,34 @@ def _mock_analysis(title, snippet):
     }
 
 
-# Max mentions that get real AI analysis per scan run.
-# The rest use the instant rule-based mock. Keeps scan time under ~2 min.
+# Max real AI calls per scan. Once hit, everything else uses instant mock.
 AI_CAP_PER_SCAN = 40
 
-# Tracks how many real AI calls have been made in the current scan
-_ai_calls_this_scan = 0
+# Consecutive 429s before we stop trying AI for this scan entirely
+_RATE_LIMIT_GIVE_UP = 3
+
+_ai_calls_this_scan   = 0   # successful AI calls
+_ai_rate_limit_streak = 0   # consecutive 429s
 
 
 def reset_scan_counter():
-    """Call at the start of each scan to reset the per-scan AI cap."""
-    global _ai_calls_this_scan
-    _ai_calls_this_scan = 0
+    """Call at the start of each scan to reset AI counters."""
+    global _ai_calls_this_scan, _ai_rate_limit_streak
+    _ai_calls_this_scan   = 0
+    _ai_rate_limit_streak = 0
 
 
 def analyze_mention(title, snippet):
-    global _ai_calls_this_scan
+    global _ai_calls_this_scan, _ai_rate_limit_streak
 
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not api_key or _ai_calls_this_scan >= AI_CAP_PER_SCAN:
+
+    # Skip AI if: no key, cap reached, or rate-limited too many times in a row
+    if not api_key or _ai_calls_this_scan >= AI_CAP_PER_SCAN or _ai_rate_limit_streak >= _RATE_LIMIT_GIVE_UP:
         return _mock_analysis(title, snippet)
 
     try:
         import anthropic
-        # max_retries=0: don't wait on 429s — fall back to mock immediately
         client = anthropic.Anthropic(api_key=api_key, max_retries=0)
         prompt = f"""You are a PR intelligence analyst for Goals Plastic Surgery, a multi-location plastic surgery company.
 
@@ -94,8 +98,15 @@ Return ONLY valid JSON. No markdown fences. No extra text."""
         )
         text = response.content[0].text.strip()
         result = json.loads(text)
-        _ai_calls_this_scan += 1
+        _ai_calls_this_scan   += 1
+        _ai_rate_limit_streak  = 0   # reset streak on success
         return result
+
     except Exception as e:
-        print(f"[AI] Falling back to mock: {e}")
+        err = str(e)
+        if "429" in err or "rate_limit" in err:
+            _ai_rate_limit_streak += 1
+            print(f"[AI] Rate limited ({_ai_rate_limit_streak}/{_RATE_LIMIT_GIVE_UP}) — using mock")
+        else:
+            print(f"[AI] Falling back to mock: {e}")
         return _mock_analysis(title, snippet)
