@@ -24,6 +24,7 @@
     ('positive', 'Positive', None),
     ('legal', 'Legal', stats.legal_queue),
     ('opportunities', 'Opps', stats.opportunities),
+    ('archived', 'Archived', None),
   ] %}
   {% set is_active = (view == v_key) %}
   <a href="/mentions{% if v_key %}?view={{ v_key }}{% endif %}" style="
@@ -98,7 +99,10 @@
     <table style="width:100%;border-collapse:collapse;min-width:640px;">
       <thead>
         <tr style="background:#f7f8fa;border-bottom:2px solid var(--border);">
-          <th style="padding:11px 8px 11px 18px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;text-align:center;width:58px;">Score</th>
+          <th style="padding:11px 6px 11px 16px;width:36px;">
+            <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent);">
+          </th>
+          <th style="padding:11px 8px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;text-align:center;width:58px;">Score</th>
           <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;text-align:left;">Mention</th>
           <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:94px;" class="hide-sm">Sentiment</th>
           <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:100px;" class="hide-sm">Risk</th>
@@ -116,8 +120,11 @@
       <tbody>
         {% for m in mentions %}
         {% set rl = m.risk_level or 'low' %}
-        <tr class="hoverable" onclick="window.location='/mentions/{{ m.id }}'">
-          <td style="padding:13px 8px 13px 18px;text-align:center;border-bottom:1px solid #f3f5f8;">
+        <tr class="hoverable mention-row" id="row-{{ m.id }}" onclick="rowClick(event, '{{ m.id }}')">
+          <td style="padding:13px 6px 13px 16px;border-bottom:1px solid #f3f5f8;" onclick="event.stopPropagation()">
+            <input type="checkbox" class="mention-cb" value="{{ m.id }}" onchange="onCheckChange()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent);">
+          </td>
+          <td style="padding:13px 8px;text-align:center;border-bottom:1px solid #f3f5f8;">
             <div class="score-box score-{{ rl }}">{{ m.impact_score or '—' }}</div>
           </td>
           <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;max-width:0;">
@@ -152,7 +159,7 @@
             </div>
           </td>
           <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;" class="hide-sm">
-            <span class="badge badge-{{ m.status or 'new' }}">{{ (m.status or 'new')|capitalize }}</span>
+            <span class="badge badge-{{ m.status or 'new' }} status-badge">{{ (m.status or 'new')|capitalize }}</span>
           </td>
           <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;font-size:.73rem;color:var(--text-3);white-space:nowrap;font-weight:500;" class="hide-sm">
             {% if m.published_at %}
@@ -172,7 +179,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="9" style="padding:64px;text-align:center;">
+          <td colspan="10" style="padding:64px;text-align:center;">
             <div style="font-size:2.5rem;margin-bottom:12px;opacity:.4;">🔍</div>
             <div style="font-size:.95rem;font-weight:700;color:var(--text-2);margin-bottom:6px;">No mentions found</div>
             <div style="font-size:.83rem;color:var(--text-3);">
@@ -196,6 +203,15 @@
     </div>
   </div>
   {% endif %}
+</div>
+
+<!-- ══ Floating Bulk Action Bar ══ -->
+<div id="bulk-bar" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;background:var(--text-1);color:#fff;border-radius:14px;padding:12px 18px;display:none;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.25);white-space:nowrap;min-width:320px;">
+  <span id="bulk-count" style="font-size:.84rem;font-weight:700;flex:1;">0 selected</span>
+  <button onclick="bulkSetStatus('reviewing')" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Mark Reviewed</button>
+  <button onclick="bulkSetStatus('resolved')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Resolve</button>
+  <button onclick="bulkSetStatus('archived')" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🗄 Archive</button>
+  <button onclick="clearSelection()" style="background:transparent;color:#9ca3af;border:none;padding:7px 4px;font-size:.84rem;cursor:pointer;">✕</button>
 </div>
 
 <!-- ══ Add Mention Modal ══ -->
@@ -271,6 +287,74 @@
 {% endblock %}
 {% block scripts %}
 <script>
+  /* ── Row click: navigate unless checkbox was involved ── */
+  function rowClick(e, id) {
+    if (e.target.type === 'checkbox') return;
+    window.location = '/mentions/' + id;
+  }
+
+  /* ── Checkbox selection ── */
+  function getChecked() {
+    return [...document.querySelectorAll('.mention-cb:checked')].map(c => c.value);
+  }
+
+  function onCheckChange() {
+    const checked = getChecked();
+    const bar = document.getElementById('bulk-bar');
+    document.getElementById('bulk-count').textContent = checked.length + ' selected';
+    bar.style.display = checked.length > 0 ? 'flex' : 'none';
+
+    // Update select-all state
+    const all = document.querySelectorAll('.mention-cb');
+    const sa  = document.getElementById('select-all');
+    sa.indeterminate = checked.length > 0 && checked.length < all.length;
+    sa.checked = checked.length === all.length && all.length > 0;
+
+    // Highlight selected rows
+    document.querySelectorAll('.mention-row').forEach(row => {
+      const cb = row.querySelector('.mention-cb');
+      row.style.background = cb && cb.checked ? 'var(--accent-bg)' : '';
+    });
+  }
+
+  function toggleSelectAll(sa) {
+    document.querySelectorAll('.mention-cb').forEach(cb => cb.checked = sa.checked);
+    onCheckChange();
+  }
+
+  function clearSelection() {
+    document.querySelectorAll('.mention-cb').forEach(cb => cb.checked = false);
+    document.getElementById('select-all').checked = false;
+    onCheckChange();
+  }
+
+  async function bulkSetStatus(status) {
+    const ids = getChecked();
+    if (!ids.length) return;
+    const labels = { reviewing: 'Reviewed', resolved: 'Resolved', archived: 'Archived' };
+    const r = await fetch('/api/mentions/bulk-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status })
+    });
+    if (r.ok) {
+      // Remove archived rows from view immediately; update others visually
+      ids.forEach(id => {
+        const row = document.getElementById('row-' + id);
+        if (!row) return;
+        if (status === 'archived') {
+          row.style.transition = 'opacity .3s';
+          row.style.opacity = '0';
+          setTimeout(() => row.remove(), 300);
+        } else {
+          const badge = row.querySelector('.status-badge');
+          if (badge) { badge.textContent = labels[status]; badge.className = 'badge badge-' + status; }
+        }
+      });
+      clearSelection();
+    }
+  }
+
   function setSortAndGo(sortVal) {
     document.getElementById('f-sort').value = sortVal;
     applyFilters();

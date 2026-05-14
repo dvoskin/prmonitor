@@ -112,6 +112,11 @@ def mentions_page():
     elif view == "legal":        where.append("needs_legal_review=1")
     elif view == "opportunities":where.append("is_opportunity=1")
     elif view == "new":          where.append("status='new'")
+    elif view == "archived":     where.append("status='archived'")
+
+    # Hide archived by default unless explicitly requested
+    if view != "archived" and not status:
+        where.append("status != 'archived'")
 
     if sentiment: where.append("sentiment=?");  params.append(sentiment)
     if risk:      where.append("risk_level=?"); params.append(risk)
@@ -232,6 +237,27 @@ def api_scan_status():
         state = dict(_scan_state)
     state["stats"] = get_stats()
     return jsonify(state)
+
+
+@app.route("/api/mentions/bulk-status", methods=["POST"])
+def api_bulk_status():
+    """Set status on multiple mentions at once. Body: {ids: [...], status: 'archived'}"""
+    data   = request.json or {}
+    ids    = data.get("ids", [])
+    status = data.get("status", "archived")
+    if not ids:
+        return jsonify({"error": "no ids"}), 400
+    allowed = {"new", "reviewing", "escalated", "resolved", "ignored", "archived"}
+    if status not in allowed:
+        return jsonify({"error": "invalid status"}), 400
+    placeholders = ",".join("?" * len(ids))
+    with get_db() as conn:
+        updated = conn.execute(
+            f"UPDATE mentions SET status=?, updated_at=datetime('now') WHERE id IN ({placeholders})",
+            [status] + ids
+        ).rowcount
+        conn.commit()
+    return jsonify({"updated": updated})
 
 
 @app.route("/api/debug-scan")
