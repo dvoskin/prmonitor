@@ -192,8 +192,9 @@ def mention_detail(mid):
 def settings_page():
     with get_db() as conn:
         keywords = rows_to_list(conn.execute("SELECT * FROM keywords ORDER BY category, phrase").fetchall())
+        neg_keywords = rows_to_list(conn.execute("SELECT * FROM negative_keywords ORDER BY phrase").fetchall())
     stats = get_stats()
-    return render_template("settings.html", keywords=keywords, stats=stats)
+    return render_template("settings.html", keywords=keywords, neg_keywords=neg_keywords, stats=stats)
 
 
 # ── API ───────────────────────────────────────────────────────────────────────
@@ -485,6 +486,48 @@ def api_keywords():
             conn.execute("DELETE FROM keywords WHERE id=?", (data.get("id"),))
             conn.commit()
             return jsonify({"ok": True})
+
+
+@app.route("/api/negative-keywords", methods=["GET", "POST", "DELETE"])
+def api_negative_keywords():
+    with get_db() as conn:
+        if request.method == "GET":
+            return jsonify(rows_to_list(conn.execute(
+                "SELECT * FROM negative_keywords ORDER BY phrase"
+            ).fetchall()))
+
+        data = request.json
+        if request.method == "POST":
+            phrase = (data.get("phrase") or "").strip().lower()
+            if not phrase:
+                return jsonify({"error": "phrase required"}), 400
+            try:
+                conn.execute(
+                    "INSERT INTO negative_keywords (id, phrase) VALUES (?,?)",
+                    (str(uuid.uuid4()), phrase)
+                )
+                conn.commit()
+                return jsonify({"ok": True}), 201
+            except Exception:
+                return jsonify({"error": "Already exists"}), 409
+
+        if request.method == "DELETE":
+            conn.execute("DELETE FROM negative_keywords WHERE id=?", (data.get("id"),))
+            conn.commit()
+            return jsonify({"ok": True})
+
+
+@app.route("/api/data/reset", methods=["POST"])
+def api_data_reset():
+    """Wipe all scanned mentions, alerts, and scan logs. Keeps keywords and manual mentions."""
+    with get_db() as conn:
+        deleted = conn.execute(
+            "DELETE FROM mentions WHERE source_name != 'manual'"
+        ).rowcount
+        conn.execute("DELETE FROM alerts")
+        conn.execute("DELETE FROM scan_logs")
+        conn.commit()
+    return jsonify({"ok": True, "deleted": deleted})
 
 
 # ── Local dev entry point ─────────────────────────────────────────────────────

@@ -63,6 +63,57 @@
   </div>
   {% endfor %}
 
+  <!-- ── Negative Keywords ── -->
+  <div class="card" style="overflow:hidden;margin-bottom:16px;">
+    <div style="padding:16px 22px;border-bottom:1.5px solid var(--border);background:#fff9f9;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <span style="font-size:1rem;">🚫</span>
+        <div style="font-size:.9rem;font-weight:700;color:#9b0000;">Negative Keywords</div>
+      </div>
+      <div style="font-size:.78rem;color:var(--text-3);font-weight:500;">Any result whose title or snippet contains these words will be blocked before saving. Use for off-topic terms — e.g. <em>messi, soccer, nfl, recipe</em>.</div>
+    </div>
+
+    <!-- Add negative keyword -->
+    <div style="padding:16px 22px;border-bottom:1.5px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
+      <input id="neg-phrase" class="inp" placeholder="e.g. messi, soccer, football…" onkeydown="if(event.key==='Enter')addNegKeyword()" style="flex:1;min-width:180px;" />
+      <button onclick="addNegKeyword()" style="height:42px;padding:0 18px;border-radius:10px;background:#9b0000;color:#fff;border:none;font-size:.83rem;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">＋ Block</button>
+    </div>
+    <div id="neg-error" style="display:none;color:#9b0000;font-size:.79rem;background:#ffeaea;border-top:1px solid #f5a0a0;padding:10px 22px;font-weight:600;"></div>
+
+    {% if neg_keywords %}
+    {% for nk in neg_keywords %}
+    <div id="neg-{{ nk.id }}" style="display:flex;align-items:center;gap:12px;padding:11px 22px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#fff9f9'" onmouseout="this.style.background=''">
+      <span style="font-size:.8rem;background:#ffeaea;color:#9b0000;border:1.5px solid #f5a0a0;border-radius:6px;padding:3px 10px;font-weight:700;font-family:monospace;">🚫 {{ nk.phrase }}</span>
+      <div style="flex:1;"></div>
+      <button onclick="deleteNegKeyword('{{ nk.id }}')"
+        style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text-3);font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;"
+        onmouseover="this.style.background='#ffeaea';this.style.borderColor='#f5a0a0';this.style.color='#9b0000'"
+        onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'"
+        title="Remove">✕</button>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="padding:20px 22px;font-size:.82rem;color:var(--text-4);font-style:italic;">No negative keywords yet — add one above.</div>
+    {% endif %}
+  </div>
+
+  <!-- ── Danger Zone ── -->
+  <div class="card" style="overflow:hidden;margin-bottom:16px;border:1.5px solid #fecaca;">
+    <div style="padding:15px 22px;border-bottom:1.5px solid #fecaca;background:#fff9f9;">
+      <div style="font-size:.9rem;font-weight:700;color:#9b0000;">⚠ Danger Zone</div>
+      <div style="font-size:.78rem;color:var(--text-3);margin-top:3px;font-weight:500;">These actions cannot be undone.</div>
+    </div>
+    <div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:.86rem;font-weight:700;color:var(--text-1);">Reset All Search Data</div>
+        <div style="font-size:.78rem;color:var(--text-3);margin-top:3px;">Deletes all scanned mentions, alerts, and scan history. Keywords and manual entries are kept.</div>
+      </div>
+      <button onclick="confirmReset()" style="height:40px;padding:0 20px;border-radius:9px;background:#fff;color:#9b0000;border:1.5px solid #f5a0a0;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;" onmouseover="this.style.background='#ffeaea'" onmouseout="this.style.background='#fff'">
+        🗑 Reset Data
+      </button>
+    </div>
+  </div>
+
   <!-- Scoring Config -->
   <div class="card" style="padding:20px;margin-bottom:13px;">
     <div style="display:flex;align-items:flex-start;gap:14px;">
@@ -139,15 +190,51 @@
     await fetch('/api/keywords', {
       method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})
     });
-    const el = document.getElementById(`kw-${id}`);
-    if (el) {
-      el.style.transition = 'opacity .2s, max-height .25s, padding .25s';
-      el.style.overflow = 'hidden';
-      el.style.opacity = '0';
-      el.style.maxHeight = el.offsetHeight + 'px';
-      requestAnimationFrame(() => { el.style.maxHeight = '0'; el.style.padding = '0 20px'; });
-      setTimeout(() => el.remove(), 280);
+    _fadeRemove(`kw-${id}`);
+  }
+
+  /* ── Negative keywords ── */
+  async function addNegKeyword() {
+    const phrase = document.getElementById('neg-phrase').value.trim();
+    const errEl  = document.getElementById('neg-error');
+    errEl.style.display = 'none';
+    if (!phrase) { errEl.style.display='block'; errEl.textContent='Enter a word or phrase to block.'; return; }
+    const r = await fetch('/api/negative-keywords', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phrase})
+    });
+    if (r.ok) { window.location.reload(); }
+    else { const d = await r.json(); errEl.style.display='block'; errEl.textContent = d.error || 'Failed.'; }
+  }
+
+  async function deleteNegKeyword(id) {
+    await fetch('/api/negative-keywords', {
+      method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})
+    });
+    _fadeRemove(`neg-${id}`);
+  }
+
+  /* ── Data reset ── */
+  async function confirmReset() {
+    const ok = confirm('This will permanently delete ALL scanned mentions, alerts, and scan history.\n\nYour keywords and any manually-added mentions will be kept.\n\nContinue?');
+    if (!ok) return;
+    const r = await fetch('/api/data/reset', { method:'POST' });
+    if (r.ok) {
+      const d = await r.json();
+      alert(`Done — ${d.deleted} mentions removed. Run a fresh scan to repopulate.`);
+      window.location.reload();
     }
+  }
+
+  /* ── Shared helper ── */
+  function _fadeRemove(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'opacity .2s, max-height .25s, padding .25s';
+    el.style.overflow = 'hidden';
+    el.style.opacity = '0';
+    el.style.maxHeight = el.offsetHeight + 'px';
+    requestAnimationFrame(() => { el.style.maxHeight = '0'; el.style.padding = '0'; });
+    setTimeout(() => el.remove(), 280);
   }
 </script>
 {% endblock %}

@@ -196,12 +196,26 @@ def run_scan() -> dict:
 
         print(f"[Scanner] All tasks done in {time.time()-t0:.1f}s")
 
-        # ── Brand relevance gate — pass matched_keyword so RSS snippets aren't penalized ──
+        # ── Brand relevance gate ─────────────────────────────────────────────
         before_filter = len(all_raw)
         all_raw = [r for r in all_raw if _is_brand_relevant(
             r.get("title", ""), r.get("snippet", ""), r.get("matched_keyword", "")
         )]
         print(f"[Scanner] Raw total: {before_filter} → {len(all_raw)} after brand filter")
+
+        # ── Negative keyword gate ────────────────────────────────────────────
+        with get_db() as conn:
+            neg_phrases = [row[0] for row in conn.execute(
+                "SELECT phrase FROM negative_keywords"
+            ).fetchall()]
+
+        if neg_phrases:
+            before_neg = len(all_raw)
+            def _passes_neg(r):
+                text = (r.get("title", "") + " " + (r.get("snippet") or "")).lower()
+                return not any(neg in text for neg in neg_phrases)
+            all_raw = [r for r in all_raw if _passes_neg(r)]
+            print(f"[Scanner] Negative filter: {before_neg} → {len(all_raw)} ({before_neg - len(all_raw)} blocked)")
 
         # ── Deduplicate ─────────────────────────────────────────────────────
         seen_urls   = set()
