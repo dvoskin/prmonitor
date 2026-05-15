@@ -194,6 +194,85 @@
   </div>
 
 </div>
+<style>
+  @media (max-width: 768px) {
+    /* Full-width container on mobile */
+    div[style*="max-width:720px"] {
+      max-width: 100% !important;
+    }
+
+    /* Card padding: tighter on mobile */
+    .card[style*="padding:14px 16px"],
+    .card[style*="padding:12px 14px"] {
+      padding: 10px 12px !important;
+    }
+
+    /* Add Keyword form: stack inputs vertically */
+    div[style*="display:flex;gap:8px;flex-wrap:wrap"] > .inp,
+    div[style*="display:flex;gap:8px;flex-wrap:wrap"] > select.inp {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+    div[style*="display:flex;gap:8px;flex-wrap:wrap"] > .btn-primary {
+      width: 100% !important;
+      height: 44px !important;
+      justify-content: center;
+    }
+
+    /* Keyword row action buttons: larger touch targets */
+    div[id^="kw-"] button,
+    div[id^="neg-"] button {
+      min-width: 44px;
+      min-height: 44px;
+      height: 44px !important;
+    }
+
+    /* Keyword rows: scrollable if needed */
+    div[id^="kw-"] {
+      height: auto !important;
+      min-height: 44px;
+      padding-top: 8px !important;
+      padding-bottom: 8px !important;
+      flex-wrap: wrap;
+    }
+
+    /* Negative keyword add row: stack on mobile */
+    div[style*="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap"] > .inp {
+      width: 100% !important;
+    }
+    div[style*="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap"] > button {
+      width: 100% !important;
+      height: 44px !important;
+    }
+
+    /* Danger zone: stack button below text */
+    div[style*="padding:12px 14px;display:flex;align-items:center;justify-content:space-between"] {
+      flex-direction: column;
+      align-items: stretch !important;
+    }
+    div[style*="padding:12px 14px;display:flex;align-items:center;justify-content:space-between"] button {
+      width: 100% !important;
+      height: 44px !important;
+    }
+
+    /* Suggestions card: chips wrap nicely (already flex-wrap, just ensure padding) */
+    #suggestions-list {
+      padding: 8px 10px 6px !important;
+      gap: 6px !important;
+    }
+
+    /* API connections: allow text to wrap */
+    div[style*="text-align:right;flex-shrink:0"] {
+      text-align: left !important;
+    }
+    div[style*="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px"] {
+      flex-wrap: wrap;
+    }
+
+    /* Table-like keyword rows: horizontal scroll fallback */
+    .card { overflow-x: auto; }
+  }
+</style>
 {% endblock %}
 {% block scripts %}
 <script>

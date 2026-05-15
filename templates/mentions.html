@@ -4,9 +4,9 @@
 
 <!-- Alert Banner -->
 {% if stats and (stats.critical > 0 or stats.unread_alerts > 0) %}
-<div id="alert-banner" style="display:flex;align-items:center;gap:10px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:10px;padding:9px 14px;margin-bottom:12px;">
+<div id="alert-banner" style="display:flex;align-items:center;gap:10px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:10px;padding:9px 14px;margin-bottom:12px;flex-wrap:wrap;">
   <span style="font-size:.92rem;flex-shrink:0;">🚨</span>
-  <div style="flex:1;font-size:.76rem;font-weight:600;color:#9b1c1c;line-height:1.4;">
+  <div style="flex:1;min-width:0;font-size:.76rem;font-weight:600;color:#9b1c1c;line-height:1.4;">
     {% if stats.critical > 0 %}<strong>{{ stats.critical }} critical</strong> mention{{ 's' if stats.critical != 1 }} need immediate attention{% endif %}
     {% if stats.critical > 0 and stats.unread_alerts > 0 %} &nbsp;·&nbsp; {% endif %}
     {% if stats.unread_alerts > 0 %}<strong>{{ stats.unread_alerts }}</strong> unread alert{{ 's' if stats.unread_alerts != 1 }}{% endif %}
@@ -24,7 +24,7 @@
       {{ total }} result{{ 's' if total != 1 else '' }}{% if view %} · <span style="color:var(--text-2);font-weight:600;">{{ view|capitalize }}</span>{% endif %}
     </p>
   </div>
-  <button onclick="document.getElementById('add-modal').style.display='flex'" class="btn-primary" style="height:34px;padding:0 14px;font-size:.78rem;">＋ Add Mention</button>
+  <button onclick="document.getElementById('add-modal').style.display='flex'" class="btn-primary" style="height:44px;padding:0 14px;font-size:.78rem;">＋ Add Mention</button>
 </div>
 
 <!-- View pill tabs — also serve as drag-to-classify drop zones -->
@@ -79,7 +79,7 @@
   </a>
   {% endfor %}
   <!-- Search toggle -->
-  <button onclick="document.getElementById('filters-row').style.display=document.getElementById('filters-row').style.display==='none'?'flex':'none'" title="Show/hide filters" style="
+  <button onclick="toggleFilters()" title="Show/hide filters" style="
     display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;
     border-radius:20px;border:1.5px solid var(--border);background:var(--surface);
     font-size:.82rem;cursor:pointer;color:var(--text-3);flex-shrink:0;transition:all .12s;
@@ -87,7 +87,7 @@
 </div>
 
 <!-- Filters row -->
-<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;align-items:center;" id="filters-row">
+<div style="display:none;gap:7px;flex-wrap:wrap;margin-bottom:10px;align-items:center;" id="filters-row">
   <div style="flex:1;min-width:180px;position:relative;">
     <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-4);font-size:.8rem;pointer-events:none;">🔍</span>
     <input type="text" id="search-inp" placeholder="Search titles, snippets, authors…" value="{{ search }}" class="inp" style="padding-left:32px;height:34px;font-size:.78rem;" onkeydown="if(event.key==='Enter')applyFilters()">
@@ -135,7 +135,7 @@
   'negative': '#e53935',
 } %}
 
-<!-- ══ TABLE ══ -->
+<!-- ══ TABLE (desktop only) ══ -->
 <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;" id="mentions-table">
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;min-width:620px;">
@@ -266,14 +266,84 @@
   {% endif %}
 </div>
 
+<!-- ══ MOBILE CARD LIST (≤768px only) ══ -->
+<div id="mobile-list" class="show-mobile-only">
+  {% for m in mentions %}
+  {% set rl = m.risk_level or 'low' %}
+  <div class="mobile-mention-card" id="mcard-{{ m.id }}" onclick="window.location='/mentions/{{ m.id }}'"
+       style="display:flex;align-items:flex-start;gap:10px;border-radius:10px;padding:10px 12px;border:1px solid var(--border);background:var(--surface);margin-bottom:8px;min-height:72px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent;">
+    <!-- Score box -->
+    <div style="flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+      <div class="score-box score-{{ rl }}" style="width:36px;height:36px;font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;border-radius:8px;">{{ m.impact_score or '—' }}</div>
+    </div>
+    <!-- Main content -->
+    <div style="flex:1;min-width:0;padding-right:32px;">
+      <!-- Title -->
+      <div style="font-size:.82rem;font-weight:700;color:var(--text-1);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ m.title }}</div>
+      <!-- Platform + sentiment dot -->
+      <div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
+        <span style="font-size:.78rem;">{{ src_icon.get(m.source_name,'🌐') }}</span>
+        <span style="font-size:.68rem;color:var(--text-3);font-weight:500;">{{ m.platform or m.source_name }}</span>
+        <span style="width:6px;height:6px;border-radius:50%;background:{{ sent_dot.get(m.sentiment,'#9ba5b5') }};display:inline-block;flex-shrink:0;"></span>
+        <span style="font-size:.65rem;color:var(--text-4);">{{ (m.sentiment or 'neutral')|capitalize }}</span>
+      </div>
+      <!-- Flags + status + date row -->
+      <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+        <!-- Flag icons -->
+        <span style="font-size:.75rem;line-height:1;">
+          {% if m.needs_legal_review %}⚖{% endif %}{% if m.notify_leadership %}🚨{% endif %}{% if m.is_opportunity %}⭐{% endif %}{% if m.is_threat %}⚠{% endif %}
+        </span>
+        <!-- Status badge -->
+        <span class="badge badge-{{ m.status or 'new' }} mobile-status-badge-{{ m.id }}" style="font-size:.6rem;padding:2px 6px;">{{ (m.status or 'new')|capitalize }}</span>
+        <!-- Date -->
+        {% if m.published_at %}
+        <span style="font-size:.63rem;color:var(--text-4);margin-left:auto;">{{ m.published_at[:10] }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <!-- Classify button (top-right) -->
+    <div style="position:absolute;top:8px;right:8px;" onclick="event.stopPropagation()">
+      <button class="classify-btn" onclick="toggleClassifyMenu(event,'mob-{{ m.id }}')" title="Classify mention"
+              style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-3);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">⊞</button>
+      <!-- Mobile classify menu (renders as bottom sheet via CSS) -->
+      <div id="cm-mob-{{ m.id }}" class="classify-menu" style="display:none;position:absolute;right:0;top:32px;z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:5px;min-width:130px;">
+        {% for lbl, lcolor in [('Critical','#c0000a'),('Negative','#e53935'),('Positive','#16a34a'),('Legal','#7c3aed'),('Opportunity','#d97706'),('Archived','#6b7280')] %}
+        <button onclick="classifyOne('{{ m.id }}','{{ lbl.lower() }}',this);closeMobileClassify('mob-{{ m.id }}')" style="display:block;width:100%;text-align:left;padding:8px 14px;font-size:.78rem;font-weight:600;color:{{ lcolor }};background:transparent;border:none;cursor:pointer;" onmouseover="this.style.background='{{ lcolor }}18'" onmouseout="this.style.background='transparent'">● {{ lbl }}</button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div style="padding:52px 16px;text-align:center;">
+    <div style="font-size:2rem;margin-bottom:10px;opacity:.35;">🔍</div>
+    <div style="font-size:.88rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">No mentions found</div>
+    <div style="font-size:.78rem;color:var(--text-3);">
+      {% if not view %}Click <strong style="color:var(--accent-dk);">Scan Now</strong> in the header to start.
+      {% else %}Try adjusting your filters or view.{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- Mobile pagination -->
+  {% if total_pages > 1 %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;flex-wrap:wrap;gap:8px;margin-top:4px;">
+    <span style="font-size:.73rem;color:var(--text-3);font-weight:500;">Page {{ page }} of {{ total_pages }} · {{ total }} total</span>
+    <div style="display:flex;gap:6px;">
+      {% if page > 1 %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page-1 }}" class="btn-ghost" style="height:44px;padding:0 16px;font-size:.78rem;">← Prev</a>{% endif %}
+      {% if page < total_pages %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page+1 }}" class="btn-ghost" style="height:44px;padding:0 16px;font-size:.78rem;">Next →</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
 <!-- ══ Floating Bulk Action Bar ══ -->
 <div id="bulk-bar" style="display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:400;background:#111827;color:#fff;border-radius:14px;padding:10px 14px;flex-direction:column;gap:8px;box-shadow:0 12px 36px rgba(0,0,0,.35);min-width:340px;max-width:92vw;">
   <!-- Row 1: count + actions -->
   <div style="display:flex;align-items:center;gap:8px;">
     <span id="bulk-count" style="font-size:.74rem;font-weight:700;color:#e5e7eb;flex:1;">0 selected</span>
-    <button onclick="bulkSetStatus('reviewing')" style="background:#1e40af;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:.71rem;font-weight:700;cursor:pointer;white-space:nowrap;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">✓ Reviewed</button>
-    <button onclick="bulkSetStatus('resolved')" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:.71rem;font-weight:700;cursor:pointer;white-space:nowrap;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">✓ Resolve</button>
-    <button onclick="clearSelection()" style="background:transparent;color:#6b7280;border:none;padding:4px;font-size:.9rem;cursor:pointer;line-height:1;">✕</button>
+    <button onclick="bulkSetStatus('reviewing')" style="background:#1e40af;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:.71rem;font-weight:700;cursor:pointer;white-space:nowrap;min-height:44px;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">✓ Reviewed</button>
+    <button onclick="bulkSetStatus('resolved')" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:.71rem;font-weight:700;cursor:pointer;white-space:nowrap;min-height:44px;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">✓ Resolve</button>
+    <button onclick="clearSelection()" style="background:transparent;color:#6b7280;border:none;padding:4px;font-size:.9rem;cursor:pointer;line-height:1;min-height:44px;min-width:44px;">✕</button>
   </div>
   <!-- Row 2: label buttons -->
   <div style="display:flex;gap:5px;flex-wrap:wrap;">
@@ -281,7 +351,7 @@
     {% for lbl, lcolor in [('Critical','#c0000a'),('Negative','#e53935'),('Positive','#16a34a'),('Legal','#7c3aed'),('Opp','#d97706'),('Archive','#6b7280')] %}
     {% set lkey = 'opportunity' if lbl == 'Opp' else ('archived' if lbl == 'Archive' else lbl.lower()) %}
     <button onclick="bulkClassify('{{ lkey }}')"
-      style="padding:4px 10px;font-size:.71rem;font-weight:700;border-radius:20px;border:1.5px solid {{ lcolor }}40;background:{{ lcolor }}18;color:{{ lcolor }};cursor:pointer;transition:all .12s;white-space:nowrap;"
+      style="padding:4px 10px;font-size:.71rem;font-weight:700;border-radius:20px;border:1.5px solid {{ lcolor }}40;background:{{ lcolor }}18;color:{{ lcolor }};cursor:pointer;transition:all .12s;white-space:nowrap;min-height:36px;"
       onmouseover="this.style.background='{{ lcolor }}';this.style.color='#fff'"
       onmouseout="this.style.background='{{ lcolor }}18';this.style.color='{{ lcolor }}'">
       ● {{ lbl }}
@@ -292,24 +362,24 @@
 
 <!-- ══ Add Mention Modal ══ -->
 <div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(13,17,23,.55);backdrop-filter:blur(5px);z-index:500;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:var(--surface);border-radius:14px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.2);max-height:90vh;display:flex;flex-direction:column;">
+  <div class="add-modal-inner" style="background:var(--surface);border-radius:14px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.2);max-height:90vh;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1.5px solid var(--border);">
       <div>
         <h2 style="font-size:.9rem;font-weight:800;color:var(--text-1);">Add Manual Mention</h2>
         <p style="font-size:.71rem;color:var(--text-3);margin-top:2px;font-weight:500;">AI will score and analyze automatically</p>
       </div>
-      <button onclick="document.getElementById('add-modal').style.display='none'" style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:.9rem;color:var(--text-3);display:flex;align-items:center;justify-content:center;transition:all .12s;" onmouseover="this.style.background='#fef2f2';this.style.borderColor='#fecaca';this.style.color='#dc2626'" onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">✕</button>
+      <button onclick="document.getElementById('add-modal').style.display='none'" style="width:44px;height:44px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:.9rem;color:var(--text-3);display:flex;align-items:center;justify-content:center;transition:all .12s;" onmouseover="this.style.background='#fef2f2';this.style.borderColor='#fecaca';this.style.color='#dc2626'" onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">✕</button>
     </div>
     <div style="padding:16px 18px;overflow-y:auto;flex:1;">
       <div id="add-error" style="display:none;background:#fee2e2;border:1.5px solid #fca5a5;color:#c0000a;padding:9px 12px;border-radius:7px;font-size:.76rem;margin-bottom:12px;font-weight:600;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div style="grid-column:1/-1;">
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Title <span style="color:#dc2626;">*</span></label>
-          <input id="a-title" class="inp" style="height:34px;font-size:.78rem;" placeholder="Mention title or headline" />
+          <input id="a-title" class="inp" style="height:44px;font-size:.78rem;" placeholder="Mention title or headline" />
         </div>
         <div style="grid-column:1/-1;">
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">URL</label>
-          <input id="a-url" class="inp" style="height:34px;font-size:.78rem;" placeholder="https://…" />
+          <input id="a-url" class="inp" style="height:44px;font-size:.78rem;" placeholder="https://…" />
         </div>
         <div style="grid-column:1/-1;">
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Content / Snippet</label>
@@ -317,7 +387,7 @@
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Source</label>
-          <select id="a-source" class="inp" style="height:34px;font-size:.78rem;">
+          <select id="a-source" class="inp" style="height:44px;font-size:.78rem;">
             {% for s in ['manual','google_news','reddit','youtube','yelp','realself','podcast','instagram','facebook','x','blog'] %}
             <option value="{{ s }}">{{ s }}</option>
             {% endfor %}
@@ -325,45 +395,116 @@
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Author</label>
-          <input id="a-author" class="inp" style="height:34px;font-size:.78rem;" placeholder="@username or name" />
+          <input id="a-author" class="inp" style="height:44px;font-size:.78rem;" placeholder="@username or name" />
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Location</label>
-          <input id="a-location" class="inp" style="height:34px;font-size:.78rem;" placeholder="e.g. Miami" />
+          <input id="a-location" class="inp" style="height:44px;font-size:.78rem;" placeholder="e.g. Miami" />
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Surgeon</label>
-          <input id="a-surgeon" class="inp" style="height:34px;font-size:.78rem;" placeholder="Dr. …" />
+          <input id="a-surgeon" class="inp" style="height:44px;font-size:.78rem;" placeholder="Dr. …" />
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Procedure</label>
-          <input id="a-procedure" class="inp" style="height:34px;font-size:.78rem;" placeholder="BBL, Lipo, FlexSculpt…" />
+          <input id="a-procedure" class="inp" style="height:44px;font-size:.78rem;" placeholder="BBL, Lipo, FlexSculpt…" />
         </div>
         <div>
           <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Engagement</label>
-          <input id="a-engagement" class="inp" style="height:34px;font-size:.78rem;" type="number" placeholder="Views / upvotes" />
+          <input id="a-engagement" class="inp" style="height:44px;font-size:.78rem;" type="number" placeholder="Views / upvotes" />
         </div>
       </div>
     </div>
     <div style="display:flex;gap:8px;padding:12px 18px;border-top:1.5px solid var(--border);background:#f7f8fa;">
-      <button onclick="document.getElementById('add-modal').style.display='none'" class="btn-ghost" style="flex:1;height:36px;font-size:.78rem;">Cancel</button>
-      <button onclick="submitMention(this)" class="btn-primary" style="flex:2;height:36px;font-size:.78rem;">Analyze & Save</button>
+      <button onclick="document.getElementById('add-modal').style.display='none'" class="btn-ghost" style="flex:1;height:44px;font-size:.78rem;">Cancel</button>
+      <button onclick="submitMention(this)" class="btn-primary" style="flex:2;height:44px;font-size:.78rem;">Analyze & Save</button>
     </div>
   </div>
 </div>
 
 <style>
+  /* ── Desktop/shared rules ── */
+  .mention-row td { vertical-align:middle; }
+
+  /* ── Mobile visibility helpers ── */
+  .show-mobile-only { display:none; }
+
+  /* ── Mobile breakpoint ── */
   @media (max-width: 768px) {
+    /* Hide desktop table, show card list */
+    #mentions-table { display:none !important; }
+    .show-mobile-only { display:block !important; }
+
+    /* Show inline mobile badges inside table cell (legacy, kept for safety) */
     .hide-sm { display:none !important; }
     .show-sm-only { display:flex !important; }
-    #extra-filters { display:none !important; }
+
+    /* Filters: hidden by default, toggled by JS; stack vertically when visible */
+    #filters-row {
+      flex-direction:column !important;
+      align-items:stretch !important;
+    }
+    #filters-row > div { min-width:unset !important; width:100% !important; }
+    #filters-row select,
+    #filters-row input { width:100% !important; height:44px !important; box-sizing:border-box; }
+    #extra-filters {
+      flex-direction:column !important;
+      align-items:stretch !important;
+      width:100% !important;
+      display:flex !important; /* override desktop hide */
+    }
+    #extra-filters select { width:100% !important; height:44px !important; }
+
+    /* Bulk action bar: full-width, docked above bottom nav */
+    #bulk-bar {
+      left:0 !important;
+      right:0 !important;
+      bottom:58px !important;
+      transform:none !important;
+      border-radius:0 !important;
+      min-width:unset !important;
+      max-width:100% !important;
+      padding:10px 14px 12px !important;
+    }
+
+    /* Add mention modal: full-screen */
+    #add-modal { padding:0 !important; align-items:stretch !important; }
+    .add-modal-inner {
+      border-radius:0 !important;
+      max-width:100% !important;
+      max-height:100% !important;
+      height:100% !important;
+    }
+
+    /* Touch-friendly card active state */
+    .mobile-mention-card:active { background:var(--accent-bg) !important; }
+
+    /* Classify menus → bottom sheet on mobile */
+    .classify-menu {
+      position:fixed !important;
+      left:0 !important;
+      right:0 !important;
+      bottom:58px !important;
+      top:auto !important;
+      border-radius:14px 14px 0 0 !important;
+      min-width:100% !important;
+      padding:10px 0 12px !important;
+      box-shadow:0 -4px 32px rgba(0,0,0,.18) !important;
+    }
+    .classify-menu button { padding:12px 20px !important; font-size:.86rem !important; }
   }
-  .mention-row td { vertical-align:middle; }
 </style>
 
 {% endblock %}
 {% block scripts %}
 <script>
+  /* ── Filter toggle (works on both mobile and desktop) ── */
+  function toggleFilters() {
+    const row = document.getElementById('filters-row');
+    const isVisible = row.style.display && row.style.display !== 'none';
+    row.style.display = isVisible ? 'none' : 'flex';
+  }
+
   /* ── Row click: navigate unless checkbox was involved ── */
   function rowClick(e, id) {
     if (e.target.type === 'checkbox') return;
@@ -445,6 +586,11 @@
     menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
   }
 
+  function closeMobileClassify(id) {
+    const menu = document.getElementById('cm-' + id);
+    if (menu) menu.style.display = 'none';
+  }
+
   document.addEventListener('click', () => {
     document.querySelectorAll('.classify-menu').forEach(m => m.style.display = 'none');
   });
@@ -457,16 +603,24 @@
     if (!r.ok) return false;
     const col = LABEL_COLORS[label] || '#000';
     ids.forEach(id => {
+      // Desktop row
       const row = document.getElementById('row-' + id);
-      if (!row) return;
+      // Mobile card
+      const card = document.getElementById('mcard-' + id);
       if (label === 'archived') {
-        row.style.transition = 'opacity .35s, transform .35s';
-        row.style.opacity = '0'; row.style.transform = 'translateX(8px)';
-        setTimeout(() => row.remove(), 380);
+        [row, card].forEach(el => {
+          if (!el) return;
+          el.style.transition = 'opacity .35s, transform .35s';
+          el.style.opacity = '0'; el.style.transform = 'translateX(8px)';
+          setTimeout(() => el.remove(), 380);
+        });
       } else {
-        row.style.transition = 'background .2s';
-        row.style.background = col + '1a';
-        setTimeout(() => { row.style.background = ''; row.style.transition = ''; }, 1100);
+        [row, card].forEach(el => {
+          if (!el) return;
+          el.style.transition = 'background .2s';
+          el.style.background = col + '1a';
+          setTimeout(() => { el.style.background = ''; el.style.transition = ''; }, 1100);
+        });
       }
     });
     return true;

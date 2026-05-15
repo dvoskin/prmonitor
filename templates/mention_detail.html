@@ -283,6 +283,81 @@
   @media (max-width: 900px) { #detail-grid { grid-template-columns:1fr !important; } }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+  /* ── Mobile overrides ── */
+  @media (max-width: 768px) {
+    /* Header strip: stack score+status below title/badges */
+    #detail-grid { gap:8px; }
+
+    /* Top header strip: stack score block below content */
+    #detail-grid > div:first-child > div[style*="flex:1"] { min-width:0; }
+
+    /* Card padding reduction */
+    .card, [style*="border-radius:var(--radius)"] { }
+
+    /* Header strip score+status block: stack vertically and go full width */
+    div[style*="align-items:center;gap:12px;flex-shrink:0"] {
+      flex-direction: row;
+      flex-wrap: wrap;
+      flex-shrink: 1 !important;
+      width: 100%;
+    }
+
+    /* Status select: comfortable touch target */
+    #status-sel {
+      height: 44px !important;
+      font-size: .85rem !important;
+    }
+
+    /* Re-analyze button: full width on mobile */
+    #reanalyze-btn {
+      width: 100% !important;
+      justify-content: center;
+      height: 44px !important;
+      font-size: .82rem !important;
+    }
+
+    /* Flags row: smaller padding, ensure wrapping */
+    div[style*="padding:9px 14px;display:flex;flex-wrap:wrap;gap:6px"] {
+      gap: 5px;
+    }
+
+    /* Response draft textarea */
+    textarea[style*="min-height:90px"] {
+      min-height: 80px !important;
+    }
+
+    /* Details metadata grid: 1 col on mobile */
+    div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+    div[style*="grid-template-columns:1fr 1fr"] > div {
+      border-right: none !important;
+    }
+
+    /* Note input row: stack vertically */
+    div[style*="padding:9px 14px;display:flex;gap:8px;border-top"] {
+      flex-direction: column;
+    }
+    div[style*="padding:9px 14px;display:flex;gap:8px;border-top"] button {
+      width: 100%;
+      height: 44px !important;
+    }
+    div[style*="padding:9px 14px;display:flex;gap:8px;border-top"] input {
+      height: 44px !important;
+    }
+
+    /* Back button: comfortable touch target */
+    a[href="javascript:history.back()"] {
+      height: 40px !important;
+      font-size: .8rem !important;
+    }
+
+    /* Top header strip padding */
+    div[style*="padding:14px 18px;margin-bottom:12px"] {
+      padding: 12px 14px !important;
+    }
+  }
 </style>
 {% endblock %}
 {% block scripts %}

@@ -144,11 +144,24 @@
       #main-wrap { margin-left:0; padding-bottom:62px; }
       #topbar { padding:0 14px; height:50px; }
       #topbar-info { display:none !important; }
-      #page-content { padding:14px; }
+      #page-content { padding:14px; padding-bottom:80px; }
       #bottom-nav { display:flex !important; }
       #hamburger-btn { display:flex !important; }
       .hide-sm { display:none !important; }
       .sm-full { width:100% !important; min-width:0 !important; }
+      /* Scan button: hide text label, icon-only on mobile */
+      .scan-label-text { display:none; }
+      /* Alert panel: fixed overlay above bottom nav */
+      #alert-panel {
+        position:fixed !important;
+        left:12px !important;
+        right:12px !important;
+        top:auto !important;
+        bottom:72px !important;
+        width:auto !important;
+        max-height:60vh !important;
+        overflow-y:auto !important;
+      }
     }
 
     /* ── Bottom nav (mobile only) ── */
@@ -238,7 +251,7 @@
     <div style="display:flex;align-items:center;gap:7px;">
       <button onclick="triggerScan(this)" class="btn-ghost" id="scan-btn" style="height:34px;padding:0 14px;font-size:.77rem;">
         <span style="font-size:.9rem;line-height:1;">↻</span>
-        <span id="scan-label">Scan Now</span>
+        <span id="scan-label"><span class="scan-label-text">Scan Now</span></span>
       </button>
 
       <!-- Bell -->
@@ -354,12 +367,12 @@
     const label = document.getElementById('scan-label');
     const bar   = document.getElementById('scan-bar');
     const fill  = document.getElementById('scan-bar-fill');
-    btn.disabled = true; label.textContent = 'Starting…';
+    btn.disabled = true; label.innerHTML = 'Starting…';
     bar.style.display = 'block'; fill.style.width = '4%';
     try {
       const r = await fetch('/api/scan',{method:'POST'});
       const d = await r.json();
-      label.textContent = 'Scanning…';
+      label.innerHTML = 'Scanning…';
       if (d.started || d.running) _pollScan(btn, label, bar, fill);
       else _scanFinished(btn, label, bar, fill, 'Error', false);
     } catch(e) { _scanFinished(btn, label, bar, fill, 'Error', false); }
@@ -374,7 +387,7 @@
         if (!st.running) {
           clearInterval(ticker); clearInterval(_scanPoller);
           _scanFinished(btn, label, bar, fill,
-            st.error ? 'Error — retry' : (st.new_count > 0 ? `+${st.new_count} new!` : 'Up to date'), !st.error);
+            st.error ? 'Error — retry' : (st.new_count > 0 ? `&#43;${st.new_count} new!` : 'Up to date'), !st.error);
         }
       } catch(e) {}
     }, 2500);
@@ -383,9 +396,9 @@
   function _scanFinished(btn, label, bar, fill, msg, ok) {
     fill.style.width = '100%';
     fill.style.background = ok ? '#16a34a' : '#dc2626';
-    label.textContent = msg;
+    label.innerHTML = msg;
     setTimeout(() => {
-      label.textContent = 'Scan Now'; btn.disabled = false;
+      label.innerHTML = '<span class="scan-label-text">Scan Now</span>'; btn.disabled = false;
       bar.style.display = 'none'; fill.style.width = '0%'; fill.style.background = '';
       if (ok) window.location.reload();
     }, 2400);
