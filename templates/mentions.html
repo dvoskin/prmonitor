@@ -3,18 +3,18 @@
 {% block content %}
 
 <!-- Header -->
-<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
   <div>
-    <h1 style="font-size:1.45rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;">Mentions</h1>
-    <p style="font-size:.84rem;color:var(--text-3);margin-top:3px;font-weight:500;">
+    <h1 style="font-size:1.15rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;line-height:1;">Mentions</h1>
+    <p style="font-size:.75rem;color:var(--text-3);margin-top:3px;font-weight:500;">
       {{ total }} result{{ 's' if total != 1 else '' }}{% if view %} · <span style="color:var(--text-2);font-weight:600;">{{ view|capitalize }}</span>{% endif %}
     </p>
   </div>
-  <button onclick="document.getElementById('add-modal').style.display='flex'" class="btn-primary">＋ Add Mention</button>
+  <button onclick="document.getElementById('add-modal').style.display='flex'" class="btn-primary" style="height:34px;padding:0 14px;font-size:.78rem;">＋ Add Mention</button>
 </div>
 
-<!-- View tabs -->
-<div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;" id="view-tabs">
+<!-- View pill tabs -->
+<div style="display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px;" id="view-tabs">
   <style>#view-tabs::-webkit-scrollbar{display:none;}</style>
   {% for v_key, v_label, v_count in [
     ('', 'All', stats.total),
@@ -28,60 +28,57 @@
   ] %}
   {% set is_active = (view == v_key) %}
   <a href="/mentions{% if v_key %}?view={{ v_key }}{% endif %}" style="
-    display:inline-flex;align-items:center;gap:5px;padding:9px 14px;
-    font-size:.81rem;font-weight:{{ '700' if is_active else '500' }};
+    display:inline-flex;align-items:center;gap:4px;
+    padding:5px 11px;
+    font-size:.74rem;font-weight:{{ '700' if is_active else '500' }};
     text-decoration:none;white-space:nowrap;flex-shrink:0;
-    color:{{ 'var(--accent-dk)' if is_active else 'var(--text-3)' }};
-    border-bottom:2.5px solid {{ 'var(--accent)' if is_active else 'transparent' }};
-    margin-bottom:-2px;transition:color .12s;
-  " onmouseover="if(!this.classList.contains('ta')){this.style.color='var(--text-1)'}" onmouseout="if(!this.classList.contains('ta')){this.style.color='{{ 'var(--accent-dk)' if is_active else 'var(--text-3)' }}'}">
+    border-radius:20px;
+    background:{{ 'var(--accent)' if is_active else 'var(--surface)' }};
+    color:{{ '#fff' if is_active else 'var(--text-2)' }};
+    border:1.5px solid {{ 'var(--accent)' if is_active else 'var(--border)' }};
+    box-shadow:{{ '0 1px 4px rgba(201,169,110,.3)' if is_active else '0 1px 2px rgba(0,0,0,.04)' }};
+    transition:all .12s;
+  " onmouseover="if(this.dataset.active!='1'){this.style.borderColor='var(--border-strong)';this.style.color='var(--text-1)'}" onmouseout="if(this.dataset.active!='1'){this.style.borderColor='var(--border)';this.style.color='var(--text-2)'}" data-active="{{ '1' if is_active else '0' }}">
     {{ v_label }}
     {% if v_count %}
-    <span style="font-size:.65rem;background:{{ 'var(--accent-bg)' if is_active else '#f3f4f6' }};color:{{ 'var(--accent-dk)' if is_active else 'var(--text-3)' }};border-radius:5px;padding:1px 6px;font-weight:700;">{{ v_count }}</span>
+    <span style="font-size:.62rem;background:{{ 'rgba(255,255,255,.25)' if is_active else '#f3f4f6' }};color:{{ 'inherit' if is_active else 'var(--text-3)' }};border-radius:20px;padding:0px 5px;font-weight:700;">{{ v_count }}</span>
     {% endif %}
   </a>
   {% endfor %}
 </div>
 
 <!-- Filters row -->
-<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px;align-items:center;" id="filters-row">
-  <!-- Search -->
-  <div style="flex:1;min-width:200px;position:relative;">
-    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-4);font-size:.85rem;pointer-events:none;">🔍</span>
-    <input type="text" id="search-inp" placeholder="Search titles, snippets, authors…" value="{{ search }}" class="inp" style="padding-left:36px;" onkeydown="if(event.key==='Enter')applyFilters()">
+<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;align-items:center;" id="filters-row">
+  <div style="flex:1;min-width:180px;position:relative;">
+    <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-4);font-size:.8rem;pointer-events:none;">🔍</span>
+    <input type="text" id="search-inp" placeholder="Search titles, snippets, authors…" value="{{ search }}" class="inp" style="padding-left:32px;height:34px;font-size:.78rem;" onkeydown="if(event.key==='Enter')applyFilters()">
   </div>
-
-  <!-- Sort -->
-  <div style="position:relative;flex-shrink:0;">
-    <select id="f-sort" class="inp" style="width:158px;padding-right:10px;cursor:pointer;" onchange="applyFilters()">
-      <option value="post_date"  {% if sort == 'post_date' %}selected{% endif %}>↓ Published Date</option>
-      <option value="found_date" {% if sort == 'found_date' %}selected{% endif %}>↓ Date Found</option>
-      <option value="score"      {% if sort == 'score' %}selected{% endif %}>↓ Impact Score</option>
-    </select>
-  </div>
-
-  <!-- Filters (collapsible on mobile) -->
-  <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;" id="extra-filters">
-    <select id="f-sentiment" class="inp" style="width:128px;cursor:pointer;" onchange="applyFilters()">
+  <select id="f-sort" class="inp" style="width:148px;height:34px;font-size:.78rem;cursor:pointer;" onchange="applyFilters()">
+    <option value="post_date"  {% if sort == 'post_date' %}selected{% endif %}>↓ Published Date</option>
+    <option value="found_date" {% if sort == 'found_date' %}selected{% endif %}>↓ Date Found</option>
+    <option value="score"      {% if sort == 'score' %}selected{% endif %}>↓ Impact Score</option>
+  </select>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;" id="extra-filters">
+    <select id="f-sentiment" class="inp" style="width:118px;height:34px;font-size:.78rem;cursor:pointer;" onchange="applyFilters()">
       <option value="">Sentiment</option>
       {% for s in ['positive','neutral','negative'] %}<option value="{{ s }}" {% if sentiment == s %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
     </select>
-    <select id="f-risk" class="inp" style="width:128px;cursor:pointer;" onchange="applyFilters()">
+    <select id="f-risk" class="inp" style="width:118px;height:34px;font-size:.78rem;cursor:pointer;" onchange="applyFilters()">
       <option value="">Risk Level</option>
       {% for r in ['low','moderate','high','critical'] %}<option value="{{ r }}" {% if risk == r %}selected{% endif %}>{{ r|capitalize }}</option>{% endfor %}
     </select>
-    <select id="f-source" class="inp" style="width:138px;cursor:pointer;" onchange="applyFilters()">
+    <select id="f-source" class="inp" style="width:128px;height:34px;font-size:.78rem;cursor:pointer;" onchange="applyFilters()">
       <option value="">All Sources</option>
       {% for s in ['google_news','bing_news','reddit','youtube','realself','bbb','pissedconsumer','healthgrades','yelp','podcast','manual'] %}
       <option value="{{ s }}" {% if source == s %}selected{% endif %}>{{ s }}</option>
       {% endfor %}
     </select>
-    <select id="f-status" class="inp" style="width:128px;cursor:pointer;" onchange="applyFilters()">
+    <select id="f-status" class="inp" style="width:118px;height:34px;font-size:.78rem;cursor:pointer;" onchange="applyFilters()">
       <option value="">All Statuses</option>
       {% for s in ['new','reviewing','escalated','resolved','ignored','archived'] %}<option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}
     </select>
     {% if search or sentiment or risk or source or status %}
-    <button onclick="clearFilters()" style="height:40px;padding:0 12px;font-size:.78rem;color:var(--text-3);background:#fef2f2;border:1.5px solid #fecaca;border-radius:9px;cursor:pointer;font-weight:600;white-space:nowrap;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">✕ Clear</button>
+    <button onclick="clearFilters()" style="height:34px;padding:0 10px;font-size:.74rem;color:var(--text-3);background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;cursor:pointer;font-weight:600;white-space:nowrap;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">✕ Clear</button>
     {% endif %}
   </div>
 </div>
@@ -93,96 +90,109 @@
   'podcast':'🎙','instagram':'📷','facebook':'👥','x':'✕','manual':'✏'
 } %}
 
-<!-- ══ TABLE (desktop) ══ -->
-<div class="card" style="overflow:hidden;" id="mentions-table">
+{% set sent_dot = {
+  'positive': '#22c55e',
+  'neutral':  '#9ba5b5',
+  'negative': '#e53935',
+} %}
+
+<!-- ══ TABLE ══ -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;" id="mentions-table">
   <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;min-width:640px;">
+    <table style="width:100%;border-collapse:collapse;min-width:620px;">
       <thead>
-        <tr style="background:#f7f8fa;border-bottom:2px solid var(--border);">
-          <th style="padding:11px 6px 11px 16px;width:36px;">
-            <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent);">
+        <tr style="background:#f7f8fa;border-bottom:1.5px solid var(--border);">
+          <th style="padding:8px 6px 8px 14px;width:32px;">
+            <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent);">
           </th>
-          <th style="padding:11px 8px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;text-align:center;width:58px;">Score</th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;text-align:left;">Mention</th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:94px;" class="hide-sm">Sentiment</th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:100px;" class="hide-sm">Risk</th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:70px;" class="hide-sm">Flags</th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:108px;" class="hide-sm">Status</th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:110px;cursor:pointer;" class="hide-sm" onclick="setSortAndGo('post_date')" title="Sort by published date">
-            Published {% if sort == 'post_date' %}<span style="color:var(--accent);">↓</span>{% endif %}
+          <th style="padding:8px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;text-align:center;width:52px;cursor:pointer;" onclick="setSortAndGo('score')" title="Sort by score">
+            Score{% if sort == 'score' %}<span style="color:var(--accent);margin-left:2px;">↓</span>{% endif %}
           </th>
-          <th style="padding:11px 12px;font-size:.67rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:96px;cursor:pointer;" class="hide-sm" onclick="setSortAndGo('found_date')" title="Sort by date found">
-            Found {% if sort == 'found_date' %}<span style="color:var(--accent);">↓</span>{% endif %}
+          <th style="padding:8px 10px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;text-align:left;">Mention</th>
+          <th style="padding:8px 10px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:32px;text-align:center;" class="hide-sm" title="Sentiment">S</th>
+          <th style="padding:8px 10px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:88px;" class="hide-sm">Platform</th>
+          <th style="padding:8px 10px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:56px;text-align:center;" class="hide-sm">Flags</th>
+          <th style="padding:8px 10px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:96px;" class="hide-sm">Status</th>
+          <th style="padding:8px 10px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:84px;cursor:pointer;" class="hide-sm" onclick="setSortAndGo('post_date')" title="Sort by published date">
+            Published{% if sort == 'post_date' %}<span style="color:var(--accent);margin-left:2px;">↓</span>{% endif %}
           </th>
-          <th style="width:40px;"></th>
+          <th style="padding:8px 10px;font-size:.61rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;font-weight:700;width:76px;cursor:pointer;" class="hide-sm" onclick="setSortAndGo('found_date')" title="Sort by date found">
+            Found{% if sort == 'found_date' %}<span style="color:var(--accent);margin-left:2px;">↓</span>{% endif %}
+          </th>
+          <th style="width:32px;"></th>
         </tr>
       </thead>
       <tbody>
         {% for m in mentions %}
         {% set rl = m.risk_level or 'low' %}
-        <tr class="hoverable mention-row" id="row-{{ m.id }}" onclick="rowClick(event, '{{ m.id }}')">
-          <td style="padding:13px 6px 13px 16px;border-bottom:1px solid #f3f5f8;" onclick="event.stopPropagation()">
-            <input type="checkbox" class="mention-cb" value="{{ m.id }}" onchange="onCheckChange()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent);">
+        <tr class="hoverable mention-row" id="row-{{ m.id }}" onclick="rowClick(event, '{{ m.id }}')" style="height:38px;">
+          <td style="padding:0 6px 0 14px;border-bottom:1px solid #f3f5f8;" onclick="event.stopPropagation()">
+            <input type="checkbox" class="mention-cb" value="{{ m.id }}" onchange="onCheckChange()" style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent);">
           </td>
-          <td style="padding:13px 8px;text-align:center;border-bottom:1px solid #f3f5f8;">
-            <div class="score-box score-{{ rl }}">{{ m.impact_score or '—' }}</div>
+          <td style="padding:0 8px;text-align:center;border-bottom:1px solid #f3f5f8;">
+            <div class="score-box score-{{ rl }}" style="font-size:.69rem;min-width:28px;padding:2px 4px;">{{ m.impact_score or '—' }}</div>
           </td>
-          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;max-width:0;">
-            <div style="display:flex;align-items:flex-start;gap:9px;">
-              <span style="font-size:1rem;flex-shrink:0;margin-top:1px;line-height:1;">{{ src_icon.get(m.source_name,'🌐') }}</span>
+          <td style="padding:0 10px;border-bottom:1px solid #f3f5f8;max-width:0;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span style="font-size:.88rem;flex-shrink:0;line-height:1;">{{ src_icon.get(m.source_name,'🌐') }}</span>
               <div style="min-width:0;">
-                <div style="font-size:.84rem;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
-                <div style="font-size:.73rem;color:var(--text-3);margin-top:2px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.platform or m.source_name }}{% if m.author %} · {{ m.author }}{% endif %}</div>
-                <!-- Mobile-only: badges inline -->
-                <div class="show-sm-only" style="display:none;gap:5px;margin-top:6px;flex-wrap:wrap;align-items:center;">
-                  <span style="font-size:.72rem;font-weight:700;color:{{ m.sentiment_color }};">{{ m.sentiment or '—' }}</span>
-                  <span class="badge badge-{{ rl }}" style="font-size:.65rem;">{{ rl|capitalize }}</span>
-                  {% if m.published_at %}<span style="font-size:.7rem;color:var(--text-3);">{{ m.published_at[:10] }}</span>{% endif %}
-                  {% if m.needs_legal_review %}<span title="Legal" style="font-size:.8rem;">⚖</span>{% endif %}
-                  {% if m.is_opportunity %}<span title="Opp" style="font-size:.8rem;">⭐</span>{% endif %}
+                <div style="font-size:.78rem;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;">{{ m.title }}</div>
+                <div style="font-size:.67rem;color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">{% if m.snippet %}{{ m.snippet[:90] }}{% elif m.author %}{{ m.author }}{% endif %}</div>
+                <!-- Mobile-only badges -->
+                <div class="show-sm-only" style="display:none;gap:4px;margin-top:4px;flex-wrap:wrap;align-items:center;">
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ sent_dot.get(m.sentiment,'#9ba5b5') }};display:inline-block;flex-shrink:0;"></span>
+                  <span class="badge badge-{{ rl }}" style="font-size:.6rem;">{{ rl|capitalize }}</span>
+                  {% if m.published_at %}<span style="font-size:.65rem;color:var(--text-3);">{{ m.published_at[:10] }}</span>{% endif %}
                 </div>
               </div>
             </div>
           </td>
-          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;" class="hide-sm">
-            <span style="font-size:.79rem;font-weight:700;color:{{ m.sentiment_color }};text-transform:capitalize;">{{ m.sentiment or '—' }}</span>
+          <!-- Sentiment dot -->
+          <td style="padding:0 10px;border-bottom:1px solid #f3f5f8;text-align:center;" class="hide-sm">
+            <span title="{{ m.sentiment or '—' }}" style="width:8px;height:8px;border-radius:50%;background:{{ sent_dot.get(m.sentiment,'#9ba5b5') }};display:inline-block;flex-shrink:0;"></span>
           </td>
-          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;" class="hide-sm">
-            <span class="badge badge-{{ rl }}">{{ rl|capitalize }}</span>
+          <!-- Platform -->
+          <td style="padding:0 10px;border-bottom:1px solid #f3f5f8;" class="hide-sm">
+            <span style="font-size:.7rem;color:var(--text-3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">{{ m.platform or m.source_name }}</span>
           </td>
-          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;" class="hide-sm">
-            <div style="display:flex;gap:3px;align-items:center;font-size:.9rem;">
+          <!-- Flags -->
+          <td style="padding:0 10px;border-bottom:1px solid #f3f5f8;text-align:center;" class="hide-sm">
+            <div style="display:flex;gap:2px;align-items:center;justify-content:center;font-size:.78rem;">
               {% if m.needs_legal_review %}<span title="Legal review">⚖</span>{% endif %}
               {% if m.notify_leadership %}<span title="Leadership">🚨</span>{% endif %}
               {% if m.is_opportunity %}<span title="Opportunity">⭐</span>{% endif %}
               {% if m.is_threat %}<span title="Threat">⚠</span>{% endif %}
             </div>
           </td>
-          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;" class="hide-sm">
-            <span class="badge badge-{{ m.status or 'new' }} status-badge">{{ (m.status or 'new')|capitalize }}</span>
+          <!-- Status -->
+          <td style="padding:0 10px;border-bottom:1px solid #f3f5f8;" class="hide-sm">
+            <span class="badge badge-{{ m.status or 'new' }} status-badge" style="font-size:.63rem;padding:2px 7px;">{{ (m.status or 'new')|capitalize }}</span>
           </td>
-          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;font-size:.73rem;color:var(--text-3);white-space:nowrap;font-weight:500;" class="hide-sm">
+          <!-- Published -->
+          <td style="padding:0 10px;border-bottom:1px solid #f3f5f8;font-size:.68rem;color:var(--text-3);white-space:nowrap;font-weight:500;" class="hide-sm">
             {% if m.published_at %}
               <span style="{% if sort == 'post_date' %}color:var(--text-2);font-weight:600;{% endif %}">{{ m.published_at[:10] }}</span>
             {% else %}
-              <span style="color:var(--text-4);font-style:italic;">—</span>
+              <span style="color:var(--text-4);">—</span>
             {% endif %}
           </td>
-          <td style="padding:13px 12px;border-bottom:1px solid #f3f5f8;font-size:.73rem;color:var(--text-3);white-space:nowrap;font-weight:500;" class="hide-sm">
+          <!-- Found -->
+          <td style="padding:0 10px;border-bottom:1px solid #f3f5f8;font-size:.68rem;color:var(--text-3);white-space:nowrap;font-weight:500;" class="hide-sm">
             {{ m.discovered_at[:10] if m.discovered_at else '—' }}
           </td>
-          <td style="padding:13px 10px 13px 4px;border-bottom:1px solid #f3f5f8;">
+          <!-- External link -->
+          <td style="padding:0 8px 0 4px;border-bottom:1px solid #f3f5f8;">
             {% if m.url %}
-            <a href="{{ m.url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="{{ m.url }}" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-3);font-size:.85rem;text-decoration:none;transition:all .12s;flex-shrink:0;" onmouseover="this.style.background='var(--accent-bg)';this.style.color='var(--accent-dk)';this.style.borderColor='var(--accent)'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">↗</a>
+            <a href="{{ m.url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="{{ m.url }}" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-3);font-size:.78rem;text-decoration:none;transition:all .12s;flex-shrink:0;" onmouseover="this.style.background='var(--accent-bg)';this.style.color='var(--accent-dk)';this.style.borderColor='var(--accent)'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-3)';this.style.borderColor='var(--border)'">↗</a>
             {% endif %}
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="10" style="padding:64px;text-align:center;">
-            <div style="font-size:2.5rem;margin-bottom:12px;opacity:.4;">🔍</div>
-            <div style="font-size:.95rem;font-weight:700;color:var(--text-2);margin-bottom:6px;">No mentions found</div>
-            <div style="font-size:.83rem;color:var(--text-3);">
+          <td colspan="10" style="padding:52px;text-align:center;">
+            <div style="font-size:2rem;margin-bottom:10px;opacity:.35;">🔍</div>
+            <div style="font-size:.88rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">No mentions found</div>
+            <div style="font-size:.78rem;color:var(--text-3);">
               {% if not view %}Click <strong style="color:var(--accent-dk);">Scan Now</strong> in the header to start.
               {% else %}Try adjusting your filters or view.{% endif %}
             </div>
@@ -195,83 +205,83 @@
 
   <!-- Pagination -->
   {% if total_pages > 1 %}
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-top:1.5px solid var(--border);background:#f7f8fa;flex-wrap:wrap;gap:10px;">
-    <span style="font-size:.79rem;color:var(--text-3);font-weight:500;">Page {{ page }} of {{ total_pages }} · {{ total }} total</span>
-    <div style="display:flex;gap:8px;">
-      {% if page > 1 %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page-1 }}" class="btn-ghost" style="height:34px;padding:0 14px;font-size:.79rem;">← Prev</a>{% endif %}
-      {% if page < total_pages %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page+1 }}" class="btn-ghost" style="height:34px;padding:0 14px;font-size:.79rem;">Next →</a>{% endif %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1.5px solid var(--border);background:#f7f8fa;flex-wrap:wrap;gap:8px;">
+    <span style="font-size:.73rem;color:var(--text-3);font-weight:500;">Page {{ page }} of {{ total_pages }} · {{ total }} total</span>
+    <div style="display:flex;gap:6px;">
+      {% if page > 1 %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page-1 }}" class="btn-ghost" style="height:30px;padding:0 12px;font-size:.73rem;">← Prev</a>{% endif %}
+      {% if page < total_pages %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page+1 }}" class="btn-ghost" style="height:30px;padding:0 12px;font-size:.73rem;">Next →</a>{% endif %}
     </div>
   </div>
   {% endif %}
 </div>
 
 <!-- ══ Floating Bulk Action Bar ══ -->
-<div id="bulk-bar" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;background:var(--text-1);color:#fff;border-radius:14px;padding:12px 18px;display:none;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.25);white-space:nowrap;min-width:320px;">
-  <span id="bulk-count" style="font-size:.84rem;font-weight:700;flex:1;">0 selected</span>
-  <button onclick="bulkSetStatus('reviewing')" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Mark Reviewed</button>
-  <button onclick="bulkSetStatus('resolved')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Resolve</button>
-  <button onclick="bulkSetStatus('archived')" style="background:#6b7280;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🗄 Archive</button>
-  <button onclick="clearSelection()" style="background:transparent;color:#9ca3af;border:none;padding:7px 4px;font-size:.84rem;cursor:pointer;">✕</button>
+<div id="bulk-bar" style="display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:400;background:var(--text-1);color:#fff;border-radius:12px;padding:9px 14px;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.28);white-space:nowrap;min-width:280px;">
+  <span id="bulk-count" style="font-size:.78rem;font-weight:700;flex:1;">0 selected</span>
+  <button onclick="bulkSetStatus('reviewing')" style="background:#2563eb;color:#fff;border:none;border-radius:7px;padding:5px 11px;font-size:.73rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Reviewed</button>
+  <button onclick="bulkSetStatus('resolved')" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:5px 11px;font-size:.73rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Resolve</button>
+  <button onclick="bulkSetStatus('archived')" style="background:#6b7280;color:#fff;border:none;border-radius:7px;padding:5px 11px;font-size:.73rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🗄 Archive</button>
+  <button onclick="clearSelection()" style="background:transparent;color:#9ca3af;border:none;padding:5px 2px;font-size:.8rem;cursor:pointer;">✕</button>
 </div>
 
 <!-- ══ Add Mention Modal ══ -->
 <div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(13,17,23,.55);backdrop-filter:blur(5px);z-index:500;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:var(--surface);border-radius:16px;width:100%;max-width:520px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.2);max-height:90vh;display:flex;flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1.5px solid var(--border);">
+  <div style="background:var(--surface);border-radius:14px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.2);max-height:90vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1.5px solid var(--border);">
       <div>
-        <h2 style="font-size:.98rem;font-weight:800;color:var(--text-1);">Add Manual Mention</h2>
-        <p style="font-size:.76rem;color:var(--text-3);margin-top:3px;font-weight:500;">AI will score and analyze automatically</p>
+        <h2 style="font-size:.9rem;font-weight:800;color:var(--text-1);">Add Manual Mention</h2>
+        <p style="font-size:.71rem;color:var(--text-3);margin-top:2px;font-weight:500;">AI will score and analyze automatically</p>
       </div>
-      <button onclick="document.getElementById('add-modal').style.display='none'" style="width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:1rem;color:var(--text-3);display:flex;align-items:center;justify-content:center;transition:all .12s;" onmouseover="this.style.background='#fef2f2';this.style.borderColor='#fecaca';this.style.color='#dc2626'" onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">✕</button>
+      <button onclick="document.getElementById('add-modal').style.display='none'" style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:.9rem;color:var(--text-3);display:flex;align-items:center;justify-content:center;transition:all .12s;" onmouseover="this.style.background='#fef2f2';this.style.borderColor='#fecaca';this.style.color='#dc2626'" onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">✕</button>
     </div>
-    <div style="padding:20px 22px;overflow-y:auto;flex:1;">
-      <div id="add-error" style="display:none;background:#ffeaea;border:1.5px solid #f5a0a0;color:#9b0000;padding:10px 14px;border-radius:8px;font-size:.8rem;margin-bottom:14px;font-weight:600;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="padding:16px 18px;overflow-y:auto;flex:1;">
+      <div id="add-error" style="display:none;background:#fee2e2;border:1.5px solid #fca5a5;color:#c0000a;padding:9px 12px;border-radius:7px;font-size:.76rem;margin-bottom:12px;font-weight:600;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div style="grid-column:1/-1;">
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Title <span style="color:#dc2626;">*</span></label>
-          <input id="a-title" class="inp" placeholder="Mention title or headline" />
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Title <span style="color:#dc2626;">*</span></label>
+          <input id="a-title" class="inp" style="height:34px;font-size:.78rem;" placeholder="Mention title or headline" />
         </div>
         <div style="grid-column:1/-1;">
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">URL</label>
-          <input id="a-url" class="inp" placeholder="https://…" />
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">URL</label>
+          <input id="a-url" class="inp" style="height:34px;font-size:.78rem;" placeholder="https://…" />
         </div>
         <div style="grid-column:1/-1;">
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Content / Snippet</label>
-          <textarea id="a-snippet" class="inp" style="min-height:76px;resize:vertical;" placeholder="Paste relevant text…"></textarea>
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Content / Snippet</label>
+          <textarea id="a-snippet" class="inp" style="min-height:66px;resize:vertical;font-size:.78rem;" placeholder="Paste relevant text…"></textarea>
         </div>
         <div>
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Source</label>
-          <select id="a-source" class="inp">
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Source</label>
+          <select id="a-source" class="inp" style="height:34px;font-size:.78rem;">
             {% for s in ['manual','google_news','reddit','youtube','yelp','realself','podcast','instagram','facebook','x','blog'] %}
             <option value="{{ s }}">{{ s }}</option>
             {% endfor %}
           </select>
         </div>
         <div>
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Author</label>
-          <input id="a-author" class="inp" placeholder="@username or name" />
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Author</label>
+          <input id="a-author" class="inp" style="height:34px;font-size:.78rem;" placeholder="@username or name" />
         </div>
         <div>
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Location</label>
-          <input id="a-location" class="inp" placeholder="e.g. Miami" />
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Location</label>
+          <input id="a-location" class="inp" style="height:34px;font-size:.78rem;" placeholder="e.g. Miami" />
         </div>
         <div>
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Surgeon</label>
-          <input id="a-surgeon" class="inp" placeholder="Dr. …" />
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Surgeon</label>
+          <input id="a-surgeon" class="inp" style="height:34px;font-size:.78rem;" placeholder="Dr. …" />
         </div>
         <div>
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Procedure</label>
-          <input id="a-procedure" class="inp" placeholder="BBL, Lipo, FlexSculpt…" />
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Procedure</label>
+          <input id="a-procedure" class="inp" style="height:34px;font-size:.78rem;" placeholder="BBL, Lipo, FlexSculpt…" />
         </div>
         <div>
-          <label style="font-size:.76rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:5px;">Engagement</label>
-          <input id="a-engagement" class="inp" type="number" placeholder="Views / upvotes" />
+          <label style="font-size:.72rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px;">Engagement</label>
+          <input id="a-engagement" class="inp" style="height:34px;font-size:.78rem;" type="number" placeholder="Views / upvotes" />
         </div>
       </div>
     </div>
-    <div style="display:flex;gap:10px;padding:16px 22px;border-top:1.5px solid var(--border);background:#f7f8fa;">
-      <button onclick="document.getElementById('add-modal').style.display='none'" class="btn-ghost" style="flex:1;height:42px;">Cancel</button>
-      <button onclick="submitMention(this)" class="btn-primary" style="flex:2;height:42px;font-size:.84rem;">Analyze & Save</button>
+    <div style="display:flex;gap:8px;padding:12px 18px;border-top:1.5px solid var(--border);background:#f7f8fa;">
+      <button onclick="document.getElementById('add-modal').style.display='none'" class="btn-ghost" style="flex:1;height:36px;font-size:.78rem;">Cancel</button>
+      <button onclick="submitMention(this)" class="btn-primary" style="flex:2;height:36px;font-size:.78rem;">Analyze & Save</button>
     </div>
   </div>
 </div>
@@ -282,6 +292,7 @@
     .show-sm-only { display:flex !important; }
     #extra-filters { display:none !important; }
   }
+  .mention-row td { vertical-align:middle; }
 </style>
 
 {% endblock %}
@@ -304,13 +315,11 @@
     document.getElementById('bulk-count').textContent = checked.length + ' selected';
     bar.style.display = checked.length > 0 ? 'flex' : 'none';
 
-    // Update select-all state
     const all = document.querySelectorAll('.mention-cb');
     const sa  = document.getElementById('select-all');
     sa.indeterminate = checked.length > 0 && checked.length < all.length;
     sa.checked = checked.length === all.length && all.length > 0;
 
-    // Highlight selected rows
     document.querySelectorAll('.mention-row').forEach(row => {
       const cb = row.querySelector('.mention-cb');
       row.style.background = cb && cb.checked ? 'var(--accent-bg)' : '';
@@ -331,14 +340,13 @@
   async function bulkSetStatus(status) {
     const ids = getChecked();
     if (!ids.length) return;
-    const labels = { reviewing: 'Reviewed', resolved: 'Resolved', archived: 'Archived' };
+    const labels = { reviewing: 'Reviewing', resolved: 'Resolved', archived: 'Archived' };
     const r = await fetch('/api/mentions/bulk-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids, status })
     });
     if (r.ok) {
-      // Remove archived rows from view immediately; update others visually
       ids.forEach(id => {
         const row = document.getElementById('row-' + id);
         if (!row) return;
@@ -348,7 +356,7 @@
           setTimeout(() => row.remove(), 300);
         } else {
           const badge = row.querySelector('.status-badge');
-          if (badge) { badge.textContent = labels[status]; badge.className = 'badge badge-' + status; }
+          if (badge) { badge.textContent = labels[status]; badge.className = 'badge badge-' + status + ' status-badge'; }
         }
       });
       clearSelection();

@@ -9,10 +9,10 @@
   /* ── Toolbar ── */
   #radar-toolbar {
     position: fixed;
-    top: 60px;
-    left: 224px;
+    top: 52px;
+    left: 210px;
     right: 0;
-    height: 48px;
+    height: 44px;
     background: #0c0e16;
     border-bottom: 1px solid #1a1f2e;
     display: flex;
@@ -64,8 +64,8 @@
   /* ── Legend ── */
   #radar-legend {
     position: fixed;
-    left: calc(224px + 16px);
-    top: calc(60px + 48px + 14px);
+    left: calc(210px + 16px);
+    top: calc(52px + 44px + 14px);
     background: rgba(12,14,22,0.88);
     border: 1px solid #1e2433;
     border-radius: 10px;
@@ -92,10 +92,10 @@
   /* ── Canvas ── */
   #radar-canvas {
     position: fixed;
-    left: 224px;
-    top: calc(60px + 48px);
-    width: calc(100vw - 224px);
-    height: calc(100vh - 60px - 48px);
+    left: 210px;
+    top: calc(52px + 44px);
+    width: calc(100vw - 210px);
+    height: calc(100vh - 52px - 44px);
     display: block;
     background: #080a0f;
   }
@@ -141,7 +141,7 @@
   #detail-panel {
     position: fixed;
     right: 0;
-    top: 60px;
+    top: 52px;
     bottom: 0;
     width: 380px;
     transform: translateX(100%);
@@ -256,10 +256,10 @@
   /* ── Loading overlay ── */
   #radar-loading {
     position: fixed;
-    left: 224px;
-    top: calc(60px + 48px);
-    width: calc(100vw - 224px);
-    height: calc(100vh - 60px - 48px);
+    left: 210px;
+    top: calc(52px + 44px);
+    width: calc(100vw - 210px);
+    height: calc(100vh - 52px - 44px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -368,6 +368,10 @@
   let animFrame    = null;
   let t            = 0;
 
+  // Logical (CSS pixel) dimensions — used for all physics, anchors, hit-testing
+  let logW = 0;
+  let logH = 0;
+
   const canvas  = document.getElementById('radar-canvas');
   const ctx     = canvas.getContext('2d');
   const loading = document.getElementById('radar-loading');
@@ -400,8 +404,9 @@
      Build nodes from API data
   ───────────────────────────────────── */
   function buildNodes(data) {
-    const W = canvas.width;
-    const H = canvas.height;
+    // Use logical CSS pixel dimensions for all position calculations
+    const W = logW;
+    const H = logH;
 
     nodes = data.map(d => {
       const zone = SEVERITY_ZONES[d.severity] || SEVERITY_ZONES.low;
@@ -436,8 +441,9 @@
      Physics tick
   ───────────────────────────────────── */
   function tick() {
-    const W = canvas.width;
-    const H = canvas.height;
+    // Use logical CSS pixel dimensions for boundary checks
+    const W = logW;
+    const H = logH;
 
     for (let i = 0; i < nodes.length; i++) {
       const n = nodes[i];
@@ -472,7 +478,7 @@
       n.x += n.vx;
       n.y += n.vy;
 
-      // Wall bounce with margin
+      // Wall bounce with margin (in logical pixels)
       const margin = n.r + 24;
       if (n.x < margin)     { n.x = margin;     n.vx = Math.abs(n.vx) * 0.5; }
       if (n.x > W - margin) { n.x = W - margin; n.vx = -Math.abs(n.vx) * 0.5; }
@@ -568,8 +574,9 @@
      Draw background grid / rings
   ───────────────────────────────────── */
   function drawBackground() {
-    const W = canvas.width;
-    const H = canvas.height;
+    // Use logical dimensions for drawing (ctx is already scaled by dpr via setTransform)
+    const W = logW;
+    const H = logH;
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = '#080a0f';
@@ -603,8 +610,8 @@
      Empty state
   ───────────────────────────────────── */
   function drawEmpty() {
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = logW;
+    const H = logH;
     drawBackground();
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
@@ -665,15 +672,24 @@
   function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();
     const dpr  = window.devicePixelRatio || 1;
-    canvas.width  = rect.width  * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+
+    // Store logical (CSS pixel) dimensions for physics and hit-testing
+    logW = rect.width;
+    logH = rect.height;
+
+    // Set the backing store to device pixels
+    canvas.width  = logW * dpr;
+    canvas.height = logH * dpr;
+
+    // Scale context once so all drawing uses CSS pixel coordinates
+    // setTransform instead of scale() avoids accumulated transforms on resize
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // Re-place anchors proportionally if we have nodes
     nodes.forEach(n => {
       const zone = SEVERITY_ZONES[n.severity] || SEVERITY_ZONES.low;
-      n.ax = rand(0.15, 0.85) * rect.width;
-      n.ay = rand(zone.yMin, zone.yMax) * rect.height;
+      n.ax = rand(0.15, 0.85) * logW;
+      n.ay = rand(zone.yMin, zone.yMax) * logH;
     });
   }
 
@@ -681,6 +697,7 @@
      Hit test
   ───────────────────────────────────── */
   function nodeAt(cx2, cy2) {
+    // getBoundingClientRect() returns CSS pixel coords — no dpr multiplication needed
     const rect = canvas.getBoundingClientRect();
     const x    = cx2 - rect.left;
     const y    = cy2 - rect.top;

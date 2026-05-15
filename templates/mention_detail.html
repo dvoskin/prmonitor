@@ -2,100 +2,97 @@
 {% block title %}{{ m.title[:50] }} — PR Impact Monitor{% endblock %}
 {% block content %}
 
+{% set rl = m.risk_level or 'low' %}
+{% set rl_color = {'low':'#22c55e','medium':'#f97316','moderate':'#f97316','high':'#e53935','critical':'#c0000a'} %}
+{% set rc = rl_color.get(rl, '#9ba5b5') %}
+
 <!-- Back -->
-<a href="javascript:history.back()" style="display:inline-flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-3);text-decoration:none;margin-bottom:18px;font-weight:600;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);transition:all .12s;" onmouseover="this.style.background='var(--bg)';this.style.color='var(--text-1)'" onmouseout="this.style.background='var(--surface)';this.style.color='var(--text-3)'">
+<a href="javascript:history.back()" style="display:inline-flex;align-items:center;gap:5px;font-size:.75rem;color:var(--text-3);text-decoration:none;margin-bottom:14px;font-weight:600;padding:0 11px;height:32px;border:1px solid var(--border);border-radius:8px;background:var(--card);">
   ← Back
 </a>
 
-{% set rl = m.risk_level or 'low' %}
-{% set sb = {'low':'#e6f9ee','moderate':'#fef8e7','high':'#fff1eb','critical':'#ffeaea'} %}
-{% set sf = {'low':'#14692a','moderate':'#8f5e00','high':'#9a2e00','critical':'#9b0000'} %}
-{% set sd = {'low':'#a3d9b5','moderate':'#f0cc72','high':'#f5ab82','critical':'#f5a0a0'} %}
-
-<!-- Hero card -->
-<div class="card" style="padding:22px;margin-bottom:16px;">
-  <div style="display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;">
-
-    <!-- Left: content -->
-    <div style="flex:1;min-width:240px;">
-      <!-- Source tag + date -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-        <span style="background:var(--bg);border:1.5px solid var(--border);border-radius:7px;padding:3px 10px;font-size:.73rem;color:var(--text-2);font-weight:700;">{{ m.platform or m.source_name }}</span>
-        {% if m.author %}<span style="font-size:.73rem;color:var(--text-3);font-weight:500;">{{ m.author }}</span>{% endif %}
-        {% if m.published_at %}
-          <span style="font-size:.73rem;color:var(--text-3);font-weight:500;">Published {{ m.published_at[:10] }}</span>
-        {% endif %}
-        {% if m.url %}
-          <a href="{{ m.url }}" target="_blank" style="font-size:.78rem;color:var(--accent-dk);font-weight:700;text-decoration:none;background:var(--accent-bg);padding:3px 10px;border-radius:7px;border:1px solid #e8c87a;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.background='#f5e8c8'" onmouseout="this.style.background='var(--accent-bg)'">↗ Source</a>
-        {% endif %}
-      </div>
-
-      <h1 style="font-size:1.05rem;font-weight:800;color:var(--text-1);line-height:1.5;margin-bottom:13px;letter-spacing:-.01em;">{{ m.title }}</h1>
-
-      <!-- Badges -->
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
-        <span class="badge badge-{{ rl }}">{{ rl|capitalize }} Risk</span>
-        <span class="badge" style="border-color:{{ m.sentiment_color }}55;background:{{ m.sentiment_color }}11;color:{{ m.sentiment_color }};">{{ (m.sentiment or 'neutral')|capitalize }}</span>
-        {% if m.needs_legal_review %}<span class="badge" style="border-color:#c4b5fd;background:#f3eeff;color:#5b21b6;">⚖ Legal Review</span>{% endif %}
-        {% if m.notify_leadership %}<span class="badge" style="border-color:#f5a0a0;background:#ffeaea;color:#9b0000;">🚨 Leadership</span>{% endif %}
-        {% if m.is_opportunity %}<span class="badge" style="border-color:#f0cc72;background:#fef8e7;color:#8f5e00;">★ Opportunity</span>{% endif %}
-        {% if m.is_threat %}<span class="badge" style="border-color:#f5ab82;background:#fff1eb;color:#9a2e00;">⚠ Threat</span>{% endif %}
-        {% if m.public_response %}<span class="badge" style="border-color:#9bb4f5;background:#e8f0fe;color:#1a3a9f;">✓ Public Response</span>{% endif %}
-      </div>
-
-      <!-- Snippet -->
-      {% if m.snippet %}
-      <blockquote style="border-left:3px solid var(--border-strong);padding:10px 14px;background:var(--bg);border-radius:0 9px 9px 0;font-size:.84rem;color:var(--text-2);line-height:1.7;font-style:italic;margin:0;">
-        {{ m.snippet[:500] }}{% if m.snippet|length > 500 %}<span style="color:var(--text-4);">…</span>{% endif %}
-      </blockquote>
+<!-- Top header strip -->
+<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:12px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:0;">
+    <!-- Meta row -->
+    <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+      <span style="font-size:.65rem;font-weight:700;color:var(--text-2);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 7px;">{{ m.platform or m.source_name }}</span>
+      {% if m.author %}<span style="font-size:.72rem;color:var(--text-3);">{{ m.author }}</span>{% endif %}
+      {% if m.published_at %}<span style="font-size:.72rem;color:var(--text-4);">{{ m.published_at[:10] }}</span>{% endif %}
+      {% if m.url %}
+        <a href="{{ m.url }}" target="_blank" style="font-size:.65rem;font-weight:700;color:var(--accent);border:1px solid var(--border);border-radius:20px;padding:2px 7px;text-decoration:none;background:var(--bg);">↗ Source</a>
       {% endif %}
+      <!-- Sentiment dot -->
+      {% set sent = (m.sentiment or 'neutral').lower() %}
+      {% set sdot = '#22c55e' if sent == 'positive' else ('#e53935' if sent == 'negative' else '#9ba5b5') %}
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:.65rem;color:var(--text-3);">
+        <span style="width:8px;height:8px;border-radius:50%;background:{{ sdot }};display:inline-block;flex-shrink:0;"></span>{{ sent|capitalize }}
+      </span>
+    </div>
 
-      {% if m.keywords %}
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;">
-        {% for k in m.keywords %}
-        <span style="background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:2px 9px;font-size:.71rem;color:var(--text-3);font-weight:600;">{{ k.phrase }}</span>
+    <!-- Title -->
+    <h1 style="font-size:1rem;font-weight:600;color:var(--text-1);line-height:1.45;margin:0 0 10px;letter-spacing:-.01em;">{{ m.title }}</h1>
+
+    <!-- Badges row -->
+    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+      <span style="font-size:.65rem;font-weight:700;color:#fff;background:{{ rc }};border-radius:20px;padding:2px 7px;">{{ rl|capitalize }} Risk</span>
+      {% if m.needs_legal_review %}<span style="font-size:.65rem;font-weight:700;color:#5b21b6;background:#f3eeff;border:1px solid #c4b5fd;border-radius:20px;padding:2px 7px;">⚖ Legal Review</span>{% endif %}
+      {% if m.notify_leadership %}<span style="font-size:.65rem;font-weight:700;color:#9b0000;background:#ffeaea;border:1px solid #f5a0a0;border-radius:20px;padding:2px 7px;">🚨 Leadership</span>{% endif %}
+      {% if m.is_opportunity %}<span style="font-size:.65rem;font-weight:700;color:#8f5e00;background:#fef8e7;border:1px solid #f0cc72;border-radius:20px;padding:2px 7px;">★ Opportunity</span>{% endif %}
+      {% if m.is_threat %}<span style="font-size:.65rem;font-weight:700;color:#9a2e00;background:#fff1eb;border:1px solid #f5ab82;border-radius:20px;padding:2px 7px;">⚠ Threat</span>{% endif %}
+      {% if m.public_response %}<span style="font-size:.65rem;font-weight:700;color:#1a3a9f;background:#e8f0fe;border:1px solid #9bb4f5;border-radius:20px;padding:2px 7px;">✓ Public Response</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- Score + Status -->
+  <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;">
+    <!-- Impact score pill -->
+    <div style="text-align:center;">
+      <div style="font-size:1.6rem;font-weight:800;color:{{ rc }};line-height:1;font-variant-numeric:tabular-nums;">{{ m.impact_score or '—' }}</div>
+      <div style="font-size:.65rem;color:var(--text-4);margin-top:1px;font-weight:500;">/ 100 impact</div>
+      <div style="margin-top:5px;height:4px;background:var(--bg);border-radius:99px;overflow:hidden;width:72px;">
+        <div style="height:100%;width:{{ m.impact_score or 0 }}%;background:{{ rc }};border-radius:99px;"></div>
+      </div>
+    </div>
+    <!-- Status dropdown -->
+    <div>
+      <div style="font-size:.68rem;color:var(--text-3);font-weight:600;margin-bottom:4px;">Status</div>
+      <select id="status-sel" onchange="updateField('status', this.value)" style="font-size:.75rem;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text-1);cursor:pointer;">
+        {% for s in ['new','reviewing','escalated','resolved','ignored','archived'] %}
+        <option value="{{ s }}" {% if m.status == s %}selected{% endif %}>{{ s|capitalize }}</option>
         {% endfor %}
-      </div>
-      {% endif %}
+      </select>
+      <div id="status-saved" style="display:none;font-size:.68rem;color:#14692a;margin-top:4px;font-weight:700;">✓ Saved</div>
     </div>
-
-    <!-- Right: Score gauge -->
-    <div style="flex-shrink:0;text-align:center;min-width:110px;">
-      <div style="width:96px;height:96px;border-radius:50%;background:{{ sb.get(rl,'#f3f5f8') }};border:4px solid {{ sd.get(rl,'#dde1e8') }};display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 10px;box-shadow:0 4px 16px {{ sd.get(rl,'#dde1e8') }}88;">
-        <div style="font-size:2.1rem;font-weight:800;color:{{ sf.get(rl,'#3d4554') }};line-height:1;font-variant-numeric:tabular-nums;">{{ m.impact_score or '—' }}</div>
-        <div style="font-size:.58rem;color:{{ sf.get(rl,'#6b7585') }};font-weight:700;opacity:.7;margin-top:1px;">/ 100</div>
-      </div>
-      <div style="font-size:.74rem;font-weight:800;color:{{ sf.get(rl,'#3d4554') }};">{{ rl|capitalize }} Risk</div>
-      <div style="font-size:.68rem;color:var(--text-4);margin-top:2px;font-weight:500;">PR Impact Score</div>
-      <div style="margin-top:10px;height:5px;background:#eef0f3;border-radius:99px;overflow:hidden;width:96px;margin-left:auto;margin-right:auto;">
-        <div style="height:100%;width:{{ m.impact_score or 0 }}%;background:{{ sd.get(rl,'#c5cad4') }};border-radius:99px;"></div>
-      </div>
-    </div>
-
   </div>
 </div>
 
+<!-- Snippet -->
+{% if m.snippet %}
+<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);border-left:3px solid {{ rc }};padding:9px 14px;margin-bottom:12px;">
+  <span style="font-size:.82rem;color:var(--text-2);line-height:1.65;font-style:italic;">{{ m.snippet[:500] }}{% if m.snippet|length > 500 %}<span style="color:var(--text-4);">…</span>{% endif %}</span>
+</div>
+{% endif %}
+
 <!-- Two-column body -->
-<div style="display:grid;grid-template-columns:minmax(0,1fr) 284px;gap:16px;align-items:start;" id="detail-grid">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:12px;align-items:start;" id="detail-grid">
 
   <!-- LEFT -->
-  <div style="display:flex;flex-direction:column;gap:16px;">
+  <div style="display:flex;flex-direction:column;gap:12px;">
 
-    <!-- AI Analysis -->
+    <!-- AI Analysis card -->
     {% set is_rule_based = m.why_it_matters and 'rule-based' in m.why_it_matters.lower() %}
-    <div class="card" style="padding:22px;" id="ai-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:7px;">
-          <span style="color:var(--accent-dk);font-size:.82rem;">✦</span>
-          <span style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;">AI Analysis</span>
-          {% if m.ai_used %}<span style="font-size:.65rem;font-weight:700;color:#14692a;background:#e6f9ee;border:1px solid #a3d9b5;border-radius:4px;padding:1px 7px;">Claude</span>{% endif %}
-          {% if is_rule_based %}<span style="font-size:.65rem;font-weight:700;color:#8f5e00;background:#fef8e7;border:1px solid #f0cc72;border-radius:4px;padding:1px 7px;">Rule-based</span>{% endif %}
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);" id="ai-card">
+      <!-- Header row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:.72rem;font-weight:700;color:var(--text-2);">AI Analysis</span>
+          {% if m.ai_used %}<span style="font-size:.65rem;font-weight:700;color:#14692a;background:#e6f9ee;border:1px solid #a3d9b5;border-radius:20px;padding:2px 7px;">Claude</span>{% endif %}
+          {% if is_rule_based %}<span style="font-size:.65rem;font-weight:700;color:#8f5e00;background:#fef8e7;border:1px solid #f0cc72;border-radius:20px;padding:2px 7px;">Rule-based</span>{% endif %}
         </div>
         <button id="reanalyze-btn" onclick="reanalyze()"
-          style="font-size:.74rem;font-weight:700;padding:5px 13px;border-radius:7px;cursor:pointer;
-                 border:1.5px solid var(--border);background:var(--bg);color:var(--text-2);
-                 display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;"
-          onmouseover="this.style.background='var(--accent-bg)';this.style.borderColor='var(--accent)';this.style.color='var(--accent-dk)'"
+          style="height:32px;font-size:.75rem;font-weight:600;padding:0 12px;border-radius:8px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--text-2);display:flex;align-items:center;gap:5px;transition:all .12s;white-space:nowrap;"
+          onmouseover="this.style.background='#eff6ff';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
           onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
           <span id="reanalyze-spin" style="display:none;animation:spin .7s linear infinite;">↻</span>
           <span id="reanalyze-label">✦ Re-analyze with AI</span>
@@ -103,9 +100,9 @@
       </div>
 
       {% if is_rule_based %}
-      <div style="background:#fef8e7;border:1.5px solid #f0cc72;border-radius:9px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:9px;">
-        <span style="font-size:.85rem;">💡</span>
-        <span style="font-size:.79rem;color:#8f5e00;font-weight:600;">This mention was classified by the rule-based engine. Click <strong>Re-analyze with AI</strong> above for a full Claude-powered breakdown.</span>
+      <div style="background:#fef8e7;border-bottom:1px solid #f0cc72;padding:9px 14px;display:flex;align-items:center;gap:8px;" class="rule-based-banner">
+        <span style="font-size:.82rem;">💡</span>
+        <span style="font-size:.78rem;color:#8f5e00;font-weight:500;">Classified by rule-based engine. Click <strong>Re-analyze with AI</strong> for a Claude-powered breakdown.</span>
       </div>
       {% endif %}
 
@@ -117,129 +114,162 @@
           ('Recommended Action', m.recommended_action,  '→'),
         ] %}
         {% if val %}
-        <div style="margin-bottom:16px;{% if not loop.last %}padding-bottom:16px;border-bottom:1.5px solid var(--border);{% endif %}">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
-            <span style="font-size:.7rem;color:var(--accent-dk);font-weight:800;">{{ icon }}</span>
-            <span style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;">{{ label }}</span>
-          </div>
-          <div style="font-size:.86rem;color:var(--text-2);line-height:1.72;font-weight:400;">{{ val }}</div>
+        <div style="padding:9px 14px;{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}">
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">{{ icon }} {{ label }}</div>
+          <div style="font-size:.82rem;color:var(--text-1);line-height:1.65;">{{ val }}</div>
         </div>
         {% endif %}
         {% endfor %}
       {% else %}
-        <div style="text-align:center;padding:24px;color:var(--text-4);">
-          <div style="font-size:1.5rem;margin-bottom:8px;">🤖</div>
-          <div style="font-size:.82rem;font-weight:500;">No AI analysis yet.</div>
+        <div style="text-align:center;padding:22px;color:var(--text-4);">
+          <div style="font-size:1.3rem;margin-bottom:6px;">🤖</div>
+          <div style="font-size:.8rem;">No AI analysis yet.</div>
         </div>
       {% endif %}
       </div>
     </div>
 
+    <!-- Flags row -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Action Flags</div>
+      <div style="padding:9px 14px;display:flex;flex-wrap:wrap;gap:6px;">
+        {% for field, label, icon, fg, bg, bdr in [
+          ('notify_leadership',       'Notify Leadership', '🚨','#9b0000','#ffeaea','#f5a0a0'),
+          ('needs_legal_review',      'Legal Review',      '⚖','#5b21b6','#f3eeff','#c4b5fd'),
+          ('public_response',         'Public Response',   '✓','#1a3a9f','#e8f0fe','#9bb4f5'),
+          ('patient_outreach_needed', 'Patient Outreach',  '♥','#14692a','#e6f9ee','#a3d9b5'),
+        ] %}
+        <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:.68rem;font-weight:600;color:{{ fg }};background:{{ bg }};border:1px solid {{ bdr }};border-radius:20px;padding:3px 9px;">
+          <input type="checkbox" {% if m[field] is defined and m[field] %}checked{% endif %} onchange="updateField('{{ field }}', this.checked ? 1 : 0)" style="accent-color:{{ fg }};cursor:pointer;width:12px;height:12px;" />
+          {{ icon }} {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
     <!-- Score Factors -->
     {% if score_factors %}
-    <div class="card" style="padding:22px;">
-      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;">Score Factor Breakdown</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Score Factor Breakdown</div>
       {% for key, val in score_factors.items() %}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f3f5f8;">
-        <span style="font-size:.81rem;color:var(--text-2);font-weight:500;text-transform:capitalize;">{{ key.replace('_',' ') }}</span>
-        <span style="font-size:.8rem;color:var(--text-1);font-family:monospace;font-weight:700;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:2px 9px;">{{ val }}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);">
+        <span style="font-size:.8rem;color:var(--text-2);text-transform:capitalize;">{{ key.replace('_',' ') }}</span>
+        <span style="font-size:.78rem;color:var(--text-1);font-family:monospace;font-weight:700;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1px 8px;">{{ val }}</span>
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
+    <!-- Response Draft -->
+    {% if m.response_draft %}
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Response Draft</div>
+      <div style="padding:9px 14px;">
+        <textarea style="width:100%;font-size:.8rem;color:var(--text-1);border:1px solid var(--border);border-radius:8px;padding:9px 11px;line-height:1.6;resize:vertical;min-height:90px;background:var(--bg);box-sizing:border-box;">{{ m.response_draft }}</textarea>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Keywords -->
+    {% if m.keywords %}
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Keywords</div>
+      <div style="padding:9px 14px;display:flex;flex-wrap:wrap;gap:5px;">
+        {% for k in m.keywords %}
+        <span style="font-size:.65rem;font-weight:600;color:var(--text-2);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 7px;">{{ k.phrase }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Deep context -->
+    {% if m.deep_context %}
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Deep Context</div>
+      <div style="padding:9px 14px;font-size:.82rem;color:var(--text-2);line-height:1.65;">{{ m.deep_context }}</div>
+    </div>
+    {% endif %}
+
     <!-- Notes -->
-    <div class="card" style="padding:22px;">
-      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;">Internal Notes</div>
-      <div id="notes-list">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Internal Notes</div>
+      <div id="notes-list" style="padding:0 14px;">
         {% if not m.notes %}
-        <div id="no-notes-msg" style="text-align:center;padding:20px;color:var(--text-4);font-size:.83rem;font-weight:500;">No notes yet — add one below</div>
+        <div id="no-notes-msg" style="text-align:center;padding:16px 0;color:var(--text-4);font-size:.8rem;">No notes yet — add one below</div>
         {% endif %}
         {% for n in m.notes %}
-        <div style="border-bottom:1.5px solid var(--border);padding:12px 0;">
-          <div style="font-size:.85rem;color:var(--text-1);line-height:1.65;font-weight:400;">{{ n.content }}</div>
-          <div style="font-size:.71rem;color:var(--text-4);margin-top:5px;display:flex;align-items:center;gap:6px;font-weight:500;">
+        <div style="border-bottom:1px solid var(--border);padding:9px 0;">
+          <div style="font-size:.82rem;color:var(--text-1);line-height:1.6;">{{ n.content }}</div>
+          <div style="font-size:.68rem;color:var(--text-4);margin-top:4px;display:flex;align-items:center;gap:5px;">
             <span>{{ n.created_at[:16].replace('T',' ') }}</span>
-            {% if n.is_privileged %}<span style="color:#5b21b6;background:#f3eeff;border:1px solid #c4b5fd;border-radius:4px;padding:0 6px;font-size:.65rem;font-weight:700;">⚖ Privileged</span>{% endif %}
+            {% if n.is_privileged %}<span style="font-size:.65rem;font-weight:700;color:#5b21b6;background:#f3eeff;border:1px solid #c4b5fd;border-radius:20px;padding:1px 6px;">⚖ Privileged</span>{% endif %}
           </div>
         </div>
         {% endfor %}
       </div>
-      <div style="display:flex;gap:8px;margin-top:14px;">
-        <input id="note-inp" class="inp" placeholder="Add a note… (Enter to save)" onkeydown="if(event.key==='Enter')addNote()" style="font-size:.84rem;" />
-        <button onclick="addNote()" class="btn-primary" style="height:42px;padding:0 18px;font-size:.81rem;flex-shrink:0;">Add</button>
+      <div style="padding:9px 14px;display:flex;gap:8px;border-top:1px solid var(--border);">
+        <input id="note-inp" placeholder="Add a note… (Enter to save)" onkeydown="if(event.key==='Enter')addNote()" style="flex:1;font-size:.8rem;height:32px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-1);" />
+        <button onclick="addNote()" style="height:32px;font-size:.75rem;font-weight:600;padding:0 12px;border-radius:8px;cursor:pointer;border:none;background:var(--accent);color:#fff;flex-shrink:0;">Add</button>
       </div>
     </div>
 
   </div>
 
   <!-- RIGHT -->
-  <div style="display:flex;flex-direction:column;gap:14px;">
+  <div style="display:flex;flex-direction:column;gap:12px;">
 
-    <!-- Status -->
-    <div class="card" style="padding:18px;">
-      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">Status</div>
-      <select id="status-sel" class="inp" style="font-size:.84rem;" onchange="updateField('status', this.value)">
-        {% for s in ['new','reviewing','escalated','resolved','ignored','archived'] %}
-        <option value="{{ s }}" {% if m.status == s %}selected{% endif %}>{{ s|capitalize }}</option>
+    <!-- Score / metadata card -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+        {% for label, val in [
+          ('Source',      m.source_name),
+          ('Post Date',   m.published_at[:10] if m.published_at else None),
+          ('Found',       m.discovered_at[:10] if m.discovered_at else None),
+          ('Location',    m.related_location),
+          ('Surgeon',     m.related_surgeon),
+          ('Procedure',   m.related_procedure),
+          ('Engagement',  (m.engagement_count|string + ' ' + (m.engagement_label or '')) if m.engagement_count else None),
+          ('Impact Score', m.impact_score|string if m.impact_score else None),
+        ] %}
+        {% if val %}
+        <div style="padding:9px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);">
+          <div style="font-size:.68rem;color:var(--text-3);margin-bottom:2px;">{{ label }}</div>
+          <div style="font-size:.82rem;color:var(--text-1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ val }}</div>
+        </div>
+        {% endif %}
         {% endfor %}
-      </select>
-      <div id="status-saved" style="display:none;font-size:.73rem;color:#14692a;margin-top:7px;text-align:center;font-weight:700;background:#e6f9ee;border:1px solid #a3d9b5;border-radius:6px;padding:4px 0;">✓ Saved</div>
-    </div>
-
-    <!-- Action flags -->
-    <div class="card" style="padding:18px;">
-      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Action Flags</div>
-      {% for field, label, icon, fg, bg, bdr in [
-        ('needs_legal_review','Legal Review',     '⚖','#5b21b6','#f3eeff','#c4b5fd'),
-        ('notify_leadership', 'Notify Leadership','🚨','#9b0000','#ffeaea','#f5a0a0'),
-        ('public_response',   'Public Response',  '✓','#1a3a9f','#e8f0fe','#9bb4f5'),
-        ('is_opportunity',    'Mark Opportunity', '◆','#8f5e00','#fef8e7','#f0cc72'),
-        ('is_threat',         'Mark as Threat',   '⚠','#9a2e00','#fff1eb','#f5ab82'),
-      ] %}
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 0;border-bottom:1px solid #f3f5f8;" onmouseover="this.style.background=''" onmouseout="this.style.background=''">
-        <input type="checkbox" {% if m[field] %}checked{% endif %} onchange="updateField('{{ field }}', this.checked ? 1 : 0)" style="width:17px;height:17px;accent-color:{{ fg }};cursor:pointer;flex-shrink:0;" />
-        <span style="font-size:.92rem;">{{ icon }}</span>
-        <span style="font-size:.81rem;color:var(--text-2);font-weight:600;">{{ label }}</span>
-      </label>
-      {% endfor %}
-    </div>
-
-    <!-- Metadata -->
-    <div class="card" style="padding:18px;">
-      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Metadata</div>
-      {% for label, val in [
-        ('Source',      m.source_name),
-        ('Post Date',   m.published_at[:10] if m.published_at else None),
-        ('Found',       m.discovered_at[:10] if m.discovered_at else None),
-        ('Location',    m.related_location),
-        ('Surgeon',     m.related_surgeon),
-        ('Procedure',   m.related_procedure),
-        ('Engagement',  (m.engagement_count|string + ' ' + (m.engagement_label or '')) if m.engagement_count else None),
-      ] %}
-      {% if val %}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f3f5f8;">
-        <span style="font-size:.78rem;color:var(--text-3);font-weight:600;">{{ label }}</span>
-        <span style="font-size:.79rem;color:var(--text-1);font-weight:600;text-align:right;max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ val }}</span>
       </div>
-      {% endif %}
+    </div>
+
+    <!-- Additional flags checkboxes -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">More Flags</div>
+      {% for field, label, icon, fg in [
+        ('is_opportunity', 'Mark Opportunity', '★', '#8f5e00'),
+        ('is_threat',      'Mark as Threat',   '⚠', '#9a2e00'),
+      ] %}
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 14px;border-bottom:1px solid var(--border);">
+        <input type="checkbox" {% if m[field] %}checked{% endif %} onchange="updateField('{{ field }}', this.checked ? 1 : 0)" style="width:14px;height:14px;accent-color:{{ fg }};cursor:pointer;flex-shrink:0;" />
+        <span style="font-size:.82rem;color:var(--text-2);">{{ icon }} {{ label }}</span>
+      </label>
       {% endfor %}
     </div>
 
     <!-- Activity log -->
     {% if m.history %}
-    <div class="card" style="padding:18px;">
-      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Activity Log</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:var(--text-2);">Activity Log</div>
       {% for h in m.history %}
-      <div style="display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f5f8;">
-        <span style="width:7px;height:7px;border-radius:50%;background:var(--border-strong);flex-shrink:0;margin-top:5px;"></span>
+      <div style="display:flex;gap:8px;align-items:flex-start;padding:9px 14px;border-bottom:1px solid var(--border);">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--text-4);flex-shrink:0;margin-top:4px;"></span>
         <div>
-          <div style="font-size:.79rem;color:var(--text-2);font-weight:600;">
+          <div style="font-size:.8rem;color:var(--text-2);">
             <span style="color:var(--text-3);">{{ h.from_status|capitalize }}</span>
-            <span style="color:var(--border-strong);margin:0 5px;">→</span>
-            <span style="color:var(--text-1);">{{ h.to_status|capitalize }}</span>
+            <span style="color:var(--text-4);margin:0 4px;">→</span>
+            <span style="color:var(--text-1);font-weight:600;">{{ h.to_status|capitalize }}</span>
           </div>
-          <div style="font-size:.71rem;color:var(--text-4);margin-top:2px;font-weight:500;">{{ h.created_at[:16].replace('T',' ') }}</div>
+          <div style="font-size:.68rem;color:var(--text-4);margin-top:2px;">{{ h.created_at[:16].replace('T',' ') }}</div>
         </div>
       </div>
       {% endfor %}
@@ -294,12 +324,9 @@
         ['→','Recommended Action', d.recommended_action],
       ];
       body.innerHTML = pairs.filter(([,, v]) => v).map(([icon, label, val], i, arr) => `
-        <div style="margin-bottom:16px;${i < arr.length-1 ? 'padding-bottom:16px;border-bottom:1.5px solid var(--border);' : ''}">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
-            <span style="font-size:.7rem;color:var(--accent-dk);font-weight:800;">${icon}</span>
-            <span style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;">${label}</span>
-          </div>
-          <div style="font-size:.86rem;color:var(--text-2);line-height:1.72;font-weight:400;">${esc(val)}</div>
+        <div style="padding:9px 14px;${i < arr.length-1 ? 'border-bottom:1px solid var(--border);' : ''}">
+          <div style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;">${icon} ${label}</div>
+          <div style="font-size:.82rem;color:var(--text-1);line-height:1.65;">${esc(val)}</div>
         </div>
       `).join('');
 
@@ -342,10 +369,10 @@
       if (nm) nm.remove();
       const list = document.getElementById('notes-list');
       const div = document.createElement('div');
-      div.style.cssText = 'border-bottom:1.5px solid var(--border);padding:12px 0;animation:fadeIn .2s;';
+      div.style.cssText = 'border-bottom:1px solid var(--border);padding:9px 0;animation:fadeIn .2s;';
       div.innerHTML = `
-        <div style="font-size:.85rem;color:var(--text-1);line-height:1.65;">${content}</div>
-        <div style="font-size:.71rem;color:var(--text-4);margin-top:5px;font-weight:500;">just now</div>
+        <div style="font-size:.82rem;color:var(--text-1);line-height:1.6;">${content}</div>
+        <div style="font-size:.68rem;color:var(--text-4);margin-top:4px;">just now</div>
       `;
       list.prepend(div);
     } catch(e) { inp.value = orig; }

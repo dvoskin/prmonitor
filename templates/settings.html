@@ -2,49 +2,51 @@
 {% block title %}Settings — PR Impact Monitor{% endblock %}
 {% block content %}
 
-<div style="max-width:740px;">
+<div style="max-width:720px;">
 
-  <div style="margin-bottom:24px;">
-    <h1 style="font-size:1.45rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;">Settings</h1>
-    <p style="font-size:.84rem;color:var(--text-3);margin-top:3px;font-weight:500;">Manage monitored keywords and source connections</p>
+  <div style="margin-bottom:18px;">
+    <h1 style="font-size:1.2rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;">Settings</h1>
+    <p style="font-size:.78rem;color:var(--text-3);margin-top:2px;font-weight:500;">Manage monitored keywords and source connections</p>
   </div>
 
   <!-- Add Keyword -->
-  <div class="card" style="padding:22px;margin-bottom:16px;">
-    <div style="font-size:.9rem;font-weight:700;color:var(--text-1);margin-bottom:14px;">Add Keyword</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <input id="kw-phrase" class="inp" placeholder="e.g. Goals Plastic Surgery bad reviews" onkeydown="if(event.key==='Enter')addKeyword()" style="flex:1;min-width:200px;" />
-      <select id="kw-cat" class="inp" style="width:148px;cursor:pointer;">
+  <div class="card" style="padding:14px 16px;margin-bottom:12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);">
+    <div style="font-size:.72rem;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Add Keyword</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input id="kw-phrase" class="inp" placeholder="e.g. Goals Plastic Surgery bad reviews" onkeydown="if(event.key==='Enter')addKeyword()"
+        style="flex:1;min-width:180px;height:34px;font-size:.8rem;border-radius:8px;" />
+      <select id="kw-cat" class="inp" style="width:130px;height:34px;font-size:.8rem;border-radius:8px;cursor:pointer;">
         {% for c in ['brand','person','location','procedure','competitor'] %}
         <option value="{{ c }}">{{ c|capitalize }}</option>
         {% endfor %}
       </select>
-      <button onclick="addKeyword()" class="btn-primary" style="flex-shrink:0;height:42px;">＋ Add</button>
+      <button onclick="addKeyword()" class="btn-primary"
+        style="flex-shrink:0;height:32px;font-size:.75rem;border-radius:8px;padding:0 12px;">＋ Add</button>
     </div>
-    <div id="kw-error" style="display:none;color:#9b0000;font-size:.79rem;margin-top:9px;background:#ffeaea;border:1.5px solid #f5a0a0;padding:8px 13px;border-radius:7px;font-weight:600;"></div>
+    <div id="kw-error" style="display:none;color:#9b0000;font-size:.75rem;margin-top:8px;background:#ffeaea;border:1px solid #f5a0a0;padding:6px 10px;border-radius:7px;font-weight:600;"></div>
   </div>
 
   <!-- ── Suggested Keywords ── -->
-  <div id="suggestions-card" class="card" style="overflow:hidden;margin-bottom:16px;display:none;">
-    <div style="padding:14px 22px;border-bottom:1.5px solid var(--border);background:#f7f9ff;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div style="display:flex;align-items:center;gap:9px;">
-        <span style="font-size:1rem;">💡</span>
+  <div id="suggestions-card" class="card" style="overflow:hidden;margin-bottom:12px;display:none;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:#f7f9ff;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:.85rem;">💡</span>
         <div>
-          <div style="font-size:.9rem;font-weight:700;color:var(--text-1);">Suggested Keywords</div>
-          <div style="font-size:.76rem;color:var(--text-3);margin-top:2px;font-weight:500;">Terms found repeatedly in your mentions — add them to surface more related results in future scans.</div>
+          <div style="font-size:.82rem;font-weight:700;color:var(--text-1);">Suggested Keywords</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:1px;font-weight:500;">Terms found repeatedly in your mentions — add them to surface more related results in future scans.</div>
         </div>
       </div>
-      <span id="suggestions-badge" style="background:#e8f0fe;color:#1a3a9f;border:1.5px solid #9bb4f5;border-radius:6px;padding:3px 10px;font-size:.71rem;font-weight:800;white-space:nowrap;flex-shrink:0;"></span>
+      <span id="suggestions-badge" style="background:#e8f0fe;color:#1a3a9f;border:1px solid #9bb4f5;border-radius:20px;padding:2px 7px;font-size:.65rem;font-weight:800;white-space:nowrap;flex-shrink:0;"></span>
     </div>
 
     <!-- loading state -->
-    <div id="suggestions-loading" style="padding:22px;text-align:center;font-size:.82rem;color:var(--text-4);">Analyzing mention patterns…</div>
+    <div id="suggestions-loading" style="padding:16px;text-align:center;font-size:.78rem;color:var(--text-4);">Analyzing mention patterns…</div>
 
     <!-- chip list -->
-    <div id="suggestions-list" style="display:none;padding:16px 20px 10px;display:flex;flex-wrap:wrap;gap:9px;"></div>
+    <div id="suggestions-list" style="display:none;padding:10px 12px 8px;display:flex;flex-wrap:wrap;gap:7px;"></div>
 
     <!-- empty state -->
-    <div id="suggestions-empty" style="display:none;padding:22px 22px;font-size:.83rem;color:var(--text-4);font-style:italic;">
+    <div id="suggestions-empty" style="display:none;padding:16px;font-size:.78rem;color:var(--text-4);font-style:italic;">
       No new suggestions — your keyword list already covers what we're seeing in mentions, or you need more scan data.
     </div>
   </div>
@@ -59,27 +61,27 @@
   } %}
   {% for cat, kws in keywords | groupby('category') %}
   {% set fg, bg, bdr = cat_styles.get(cat, ('#3d4554','#f3f4f6','#c8ced8')) %}
-  <div class="card" style="overflow:hidden;margin-bottom:13px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1.5px solid var(--border);background:#f7f8fa;">
-      <div style="display:flex;align-items:center;gap:9px;">
-        <span style="background:{{ bg }};color:{{ fg }};border:1.5px solid {{ bdr }};border-radius:6px;padding:3px 11px;font-size:.72rem;font-weight:800;text-transform:capitalize;letter-spacing:.02em;">{{ cat }}</span>
-        <span style="font-size:.78rem;color:var(--text-3);font-weight:600;">{{ kws|list|length }} keyword{{ 's' if kws|list|length != 1 else '' }}</span>
+  <div class="card" style="overflow:hidden;margin-bottom:10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:#f7f8fa;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="background:{{ bg }};color:{{ fg }};border:1px solid {{ bdr }};border-radius:20px;padding:2px 7px;font-size:.65rem;font-weight:800;text-transform:capitalize;letter-spacing:.02em;">{{ cat }}</span>
+        <span style="font-size:.72rem;color:var(--text-3);font-weight:600;">{{ kws|list|length }} keyword{{ 's' if kws|list|length != 1 else '' }}</span>
       </div>
     </div>
     {% for kw in kws %}
-    <div id="kw-{{ kw.id }}" style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#f7f8fa'" onmouseout="this.style.background=''">
+    <div id="kw-{{ kw.id }}" style="display:flex;align-items:center;gap:10px;padding:0 14px;height:38px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#f7f8fa'" onmouseout="this.style.background=''">
       <div style="flex:1;min-width:0;">
-        <span style="font-size:.86rem;font-weight:{% if kw.enabled %}600{% else %}400{% endif %};color:{% if kw.enabled %}var(--text-1){% else %}var(--text-4){% endif %};{% if not kw.enabled %}text-decoration:line-through;{% endif %}">{{ kw.phrase }}</span>
+        <span style="font-size:.78rem;font-weight:{% if kw.enabled %}600{% else %}400{% endif %};color:{% if kw.enabled %}var(--text-1){% else %}var(--text-4){% endif %};{% if not kw.enabled %}text-decoration:line-through;{% endif %}">{{ kw.phrase }}</span>
       </div>
       <button onclick="toggleKeyword('{{ kw.id }}', {{ 0 if kw.enabled else 1 }})"
-        style="font-size:.73rem;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer;transition:all .12s;white-space:nowrap;
+        style="font-size:.72rem;font-weight:700;height:26px;padding:0 10px;border-radius:8px;cursor:pointer;transition:all .12s;white-space:nowrap;
           background:{% if kw.enabled %}var(--accent){% else %}var(--bg){% endif %};
           color:{% if kw.enabled %}#fff{% else %}var(--text-3){% endif %};
-          border:1.5px solid {% if kw.enabled %}var(--accent-dk){% else %}var(--border){% endif %};">
+          border:1px solid {% if kw.enabled %}var(--accent-dk){% else %}var(--border){% endif %};">
         {{ '● Active' if kw.enabled else '○ Off' }}
       </button>
       <button onclick="deleteKeyword('{{ kw.id }}')"
-        style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text-3);font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;"
+        style="width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text-3);font-size:.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;"
         onmouseover="this.style.background='#ffeaea';this.style.borderColor='#f5a0a0';this.style.color='#9b0000'"
         onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'"
         title="Delete">✕</button>
@@ -89,74 +91,79 @@
   {% endfor %}
 
   <!-- ── Negative Keywords ── -->
-  <div class="card" style="overflow:hidden;margin-bottom:16px;">
-    <div style="padding:16px 22px;border-bottom:1.5px solid var(--border);background:#fff9f9;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-        <span style="font-size:1rem;">🚫</span>
-        <div style="font-size:.9rem;font-weight:700;color:#9b0000;">Negative Keywords</div>
+  <div class="card" style="overflow:hidden;margin-bottom:12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:#fff9f9;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+        <span style="font-size:.82rem;">🚫</span>
+        <div style="font-size:.82rem;font-weight:700;color:#9b0000;">Negative Keywords</div>
       </div>
-      <div style="font-size:.78rem;color:var(--text-3);font-weight:500;">Any result whose title or snippet contains these words will be blocked before saving. Use for off-topic terms — e.g. <em>messi, soccer, nfl, recipe</em>.</div>
+      <div style="font-size:.72rem;color:var(--text-3);font-weight:500;">Any result whose title or snippet contains these words will be blocked before saving. Use for off-topic terms — e.g. <em>messi, soccer, nfl, recipe</em>.</div>
     </div>
 
     <!-- Add negative keyword -->
-    <div style="padding:16px 22px;border-bottom:1.5px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
-      <input id="neg-phrase" class="inp" placeholder="e.g. messi, soccer, football…" onkeydown="if(event.key==='Enter')addNegKeyword()" style="flex:1;min-width:180px;" />
-      <button onclick="addNegKeyword()" style="height:42px;padding:0 18px;border-radius:10px;background:#9b0000;color:#fff;border:none;font-size:.83rem;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">＋ Block</button>
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
+      <input id="neg-phrase" class="inp" placeholder="e.g. messi, soccer, football…" onkeydown="if(event.key==='Enter')addNegKeyword()"
+        style="flex:1;min-width:160px;height:34px;font-size:.8rem;border-radius:8px;" />
+      <button onclick="addNegKeyword()"
+        style="height:32px;padding:0 12px;border-radius:8px;background:#9b0000;color:#fff;border:none;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity .12s;"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">＋ Block</button>
     </div>
-    <div id="neg-error" style="display:none;color:#9b0000;font-size:.79rem;background:#ffeaea;border-top:1px solid #f5a0a0;padding:10px 22px;font-weight:600;"></div>
+    <div id="neg-error" style="display:none;color:#9b0000;font-size:.75rem;background:#ffeaea;border-top:1px solid #f5a0a0;padding:7px 14px;font-weight:600;"></div>
 
     {% if neg_keywords %}
     {% for nk in neg_keywords %}
-    <div id="neg-{{ nk.id }}" style="display:flex;align-items:center;gap:12px;padding:11px 22px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#fff9f9'" onmouseout="this.style.background=''">
-      <span style="font-size:.8rem;background:#ffeaea;color:#9b0000;border:1.5px solid #f5a0a0;border-radius:6px;padding:3px 10px;font-weight:700;font-family:monospace;">🚫 {{ nk.phrase }}</span>
+    <div id="neg-{{ nk.id }}" style="display:flex;align-items:center;gap:10px;padding:0 14px;height:38px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#fff9f9'" onmouseout="this.style.background=''">
+      <span style="font-size:.72rem;background:#ffeaea;color:#9b0000;border:1px solid #f5a0a0;border-radius:20px;padding:2px 7px;font-weight:700;font-family:monospace;">🚫 {{ nk.phrase }}</span>
       <div style="flex:1;"></div>
       <button onclick="deleteNegKeyword('{{ nk.id }}')"
-        style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text-3);font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;"
+        style="width:26px;height:26px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;color:var(--text-3);font-size:.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;"
         onmouseover="this.style.background='#ffeaea';this.style.borderColor='#f5a0a0';this.style.color='#9b0000'"
         onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'"
         title="Remove">✕</button>
     </div>
     {% endfor %}
     {% else %}
-    <div style="padding:20px 22px;font-size:.82rem;color:var(--text-4);font-style:italic;">No negative keywords yet — add one above.</div>
+    <div style="padding:14px;font-size:.78rem;color:var(--text-4);font-style:italic;">No negative keywords yet — add one above.</div>
     {% endif %}
   </div>
 
   <!-- ── Danger Zone ── -->
-  <div class="card" style="overflow:hidden;margin-bottom:16px;border:1.5px solid #fecaca;">
-    <div style="padding:15px 22px;border-bottom:1.5px solid #fecaca;background:#fff9f9;">
-      <div style="font-size:.9rem;font-weight:700;color:#9b0000;">⚠ Danger Zone</div>
-      <div style="font-size:.78rem;color:var(--text-3);margin-top:3px;font-weight:500;">These actions cannot be undone.</div>
+  <div class="card" style="overflow:hidden;margin-bottom:12px;border-radius:var(--radius);border:1px solid #fecaca;background:var(--card);">
+    <div style="padding:10px 14px;border-bottom:1px solid #fecaca;background:#fff9f9;">
+      <div style="font-size:.82rem;font-weight:700;color:#9b0000;">⚠ Danger Zone</div>
+      <div style="font-size:.72rem;color:var(--text-3);margin-top:2px;font-weight:500;">These actions cannot be undone.</div>
     </div>
-    <div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+    <div style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
-        <div style="font-size:.86rem;font-weight:700;color:var(--text-1);">Reset All Search Data</div>
-        <div style="font-size:.78rem;color:var(--text-3);margin-top:3px;">Deletes all scanned mentions, alerts, and scan history. Keywords and manual entries are kept.</div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--text-1);">Reset All Search Data</div>
+        <div style="font-size:.72rem;color:var(--text-3);margin-top:2px;">Deletes all scanned mentions, alerts, and scan history. Keywords and manual entries are kept.</div>
       </div>
-      <button onclick="confirmReset()" style="height:40px;padding:0 20px;border-radius:9px;background:#fff;color:#9b0000;border:1.5px solid #f5a0a0;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;" onmouseover="this.style.background='#ffeaea'" onmouseout="this.style.background='#fff'">
+      <button onclick="confirmReset()"
+        style="height:32px;padding:0 12px;border-radius:8px;background:#fff;color:#9b0000;border:1px solid #f5a0a0;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;"
+        onmouseover="this.style.background='#ffeaea'" onmouseout="this.style.background='#fff'">
         🗑 Reset Data
       </button>
     </div>
   </div>
 
   <!-- Scoring Config -->
-  <div class="card" style="padding:20px;margin-bottom:13px;">
-    <div style="display:flex;align-items:flex-start;gap:14px;">
-      <div style="width:40px;height:40px;background:#fef8e7;border:1.5px solid #f0cc72;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">⚖</div>
+  <div class="card" style="padding:12px 14px;margin-bottom:10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="width:32px;height:32px;background:#fef8e7;border:1px solid #f0cc72;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;">⚖</div>
       <div>
-        <div style="font-size:.9rem;font-weight:700;color:var(--text-1);margin-bottom:5px;">Scoring Configuration</div>
-        <div style="font-size:.83rem;color:var(--text-2);line-height:1.65;font-weight:400;">
-          Edit <code style="color:#8f5e00;background:#fef8e7;border:1.5px solid #f0cc72;padding:2px 8px;border-radius:5px;font-size:.78rem;font-family:monospace;">scoring_config.py</code> to adjust source weights, sentiment multipliers, risk bonuses, and alert thresholds. Changes take effect on next scan.
+        <div style="font-size:.82rem;font-weight:700;color:var(--text-1);margin-bottom:4px;">Scoring Configuration</div>
+        <div style="font-size:.78rem;color:var(--text-2);line-height:1.6;font-weight:400;">
+          Edit <code style="color:#8f5e00;background:#fef8e7;border:1px solid #f0cc72;padding:1px 6px;border-radius:5px;font-size:.72rem;font-family:monospace;">scoring_config.py</code> to adjust source weights, sentiment multipliers, risk bonuses, and alert thresholds. Changes take effect on next scan.
         </div>
       </div>
     </div>
   </div>
 
   <!-- API Connections -->
-  <div class="card" style="overflow:hidden;">
-    <div style="padding:15px 22px;border-bottom:1.5px solid var(--border);background:#f7f8fa;">
-      <div style="font-size:.9rem;font-weight:700;color:var(--text-1);">Data Sources & Connections</div>
-      <div style="font-size:.76rem;color:var(--text-3);margin-top:2px;font-weight:500;">Add keys to <code style="background:var(--bg);border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-size:.72rem;">.env</code> and restart the app</div>
+  <div class="card" style="overflow:hidden;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:#f7f8fa;">
+      <div style="font-size:.82rem;font-weight:700;color:var(--text-1);">Data Sources &amp; Connections</div>
+      <div style="font-size:.72rem;color:var(--text-3);margin-top:1px;font-weight:500;">Add keys to <code style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:.68rem;">.env</code> and restart the app</div>
     </div>
     {% for name, status_label, is_active, note, key in [
       ('Google News RSS',          'Active · Free',   true,  'Primary news source — no key required',                           '—'),
@@ -168,18 +175,18 @@
       ('Serper.dev (Google+News)', 'Optional · Paid', false, 'Higher-quality Google results — 2,500 free queries/month trial', 'SERPER_API_KEY'),
       ('Anthropic Claude AI',      'Optional · Paid', false, 'Full AI analysis — rule-based fallback active without key',      'ANTHROPIC_API_KEY'),
     ] %}
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 22px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#f7f8fa'" onmouseout="this.style.background=''">
-      <div style="display:flex;align-items:flex-start;gap:10px;min-width:0;flex:1;">
-        <span style="width:9px;height:9px;border-radius:50%;background:{% if is_active %}#16a34a{% else %}#c8ced8{% endif %};flex-shrink:0;margin-top:5px;"></span>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid #f3f5f8;transition:background .1s;" onmouseover="this.style.background='#f7f8fa'" onmouseout="this.style.background=''">
+      <div style="display:flex;align-items:flex-start;gap:8px;min-width:0;flex:1;">
+        <span style="width:7px;height:7px;border-radius:50%;background:{% if is_active %}#16a34a{% else %}#c8ced8{% endif %};flex-shrink:0;margin-top:5px;"></span>
         <div style="min-width:0;">
-          <div style="font-size:.84rem;font-weight:700;color:var(--text-1);">{{ name }}</div>
-          <div style="font-size:.75rem;color:var(--text-3);margin-top:2px;font-weight:500;">{{ note }}</div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--text-1);">{{ name }}</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:1px;font-weight:500;">{{ note }}</div>
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:.73rem;font-weight:700;color:{% if is_active %}#14692a{% else %}var(--text-3){% endif %};margin-bottom:4px;white-space:nowrap;">{{ status_label }}</div>
+        <div style="font-size:.68rem;font-weight:700;color:{% if is_active %}#14692a{% else %}var(--text-3){% endif %};margin-bottom:3px;white-space:nowrap;">{{ status_label }}</div>
         {% if key != '—' %}
-        <code style="font-size:.69rem;color:var(--text-3);background:var(--bg);border:1.5px solid var(--border);padding:2px 7px;border-radius:5px;font-family:monospace;">{{ key }}</code>
+        <code style="font-size:.65rem;color:var(--text-3);background:var(--bg);border:1px solid var(--border);padding:2px 6px;border-radius:5px;font-family:monospace;">{{ key }}</code>
         {% endif %}
       </div>
     </div>
@@ -307,10 +314,10 @@
     const wrap = document.createElement('div');
     wrap.id = 'sug-' + s.phrase_lower.replace(/[^a-z0-9]/g,'_');
     wrap.style.cssText = `
-      display:inline-flex;align-items:center;gap:7px;
-      background:#f5f7fc;border:1.5px solid #d0d9ef;border-radius:9px;
-      padding:6px 10px 6px 12px;transition:border-color .15s,background .15s;
-      max-width:340px;
+      display:inline-flex;align-items:center;gap:6px;
+      background:#f5f7fc;border:1px solid #d0d9ef;border-radius:8px;
+      padding:4px 8px 4px 10px;transition:border-color .15s,background .15s;
+      max-width:320px;
     `;
     wrap.onmouseover = () => { wrap.style.borderColor='#9bb4f5'; wrap.style.background='#eef2fb'; };
     wrap.onmouseout  = () => { wrap.style.borderColor='#d0d9ef'; wrap.style.background='#f5f7fc'; };
@@ -319,13 +326,13 @@
     const label = document.createElement('div');
     label.style.cssText = 'min-width:0;flex:1;';
     label.innerHTML = `
-      <span style="font-size:.82rem;font-weight:700;color:var(--text-1);">${escHtml(s.phrase)}</span>
-      <span style="font-size:.7rem;color:#1a3a9f;background:#e8f0fe;border:1px solid #9bb4f5;border-radius:5px;padding:1px 7px;margin-left:6px;font-weight:700;">${s.mention_count}×</span>
+      <span style="font-size:.72rem;font-weight:700;color:var(--text-1);">${escHtml(s.phrase)}</span>
+      <span style="font-size:.65rem;color:#1a3a9f;background:#e8f0fe;border:1px solid #9bb4f5;border-radius:20px;padding:1px 6px;margin-left:5px;font-weight:700;">${s.mention_count}×</span>
     `;
 
     // Category selector
     const sel = document.createElement('select');
-    sel.style.cssText = 'font-size:.72rem;border:1.5px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg);color:var(--text-2);cursor:pointer;height:28px;';
+    sel.style.cssText = 'font-size:.72rem;border:1px solid var(--border);border-radius:6px;padding:2px 5px;background:var(--bg);color:var(--text-2);cursor:pointer;height:26px;';
     CAT_OPTIONS.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c;
@@ -338,9 +345,9 @@
     const addBtn = document.createElement('button');
     addBtn.textContent = '+ Add';
     addBtn.style.cssText = `
-      font-size:.73rem;font-weight:700;padding:4px 11px;border-radius:6px;cursor:pointer;
-      background:var(--accent);color:#fff;border:1.5px solid var(--accent-dk);
-      white-space:nowrap;transition:opacity .12s;height:28px;
+      font-size:.72rem;font-weight:700;padding:0 9px;border-radius:6px;cursor:pointer;
+      background:var(--accent);color:#fff;border:1px solid var(--accent-dk);
+      white-space:nowrap;transition:opacity .12s;height:26px;
     `;
     addBtn.onmouseover = () => addBtn.style.opacity = '.82';
     addBtn.onmouseout  = () => addBtn.style.opacity = '1';
@@ -370,8 +377,8 @@
     dimBtn.title = 'Dismiss suggestion';
     dimBtn.textContent = '✕';
     dimBtn.style.cssText = `
-      width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);
-      background:transparent;cursor:pointer;color:var(--text-4);font-size:.76rem;
+      width:22px;height:22px;border-radius:6px;border:1px solid var(--border);
+      background:transparent;cursor:pointer;color:var(--text-4);font-size:.68rem;
       display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;
     `;
     dimBtn.onmouseover = () => { dimBtn.style.background='#ffeaea'; dimBtn.style.borderColor='#f5a0a0'; dimBtn.style.color='#9b0000'; };

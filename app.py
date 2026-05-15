@@ -908,6 +908,119 @@ def api_data_reset():
     return jsonify({"ok": True, "deleted": deleted})
 
 
+# ── Google Business Profile OAuth + sync ─────────────────────────────────────
+
+@app.route("/api/integrations/google/auth")
+def google_auth():
+    """Start the Google OAuth flow — redirect user to Google consent screen."""
+    try:
+        from connectors.google_business_profile import get_oauth_url
+        return redirect(get_oauth_url())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/integrations/google/callback")
+def google_callback():
+    """Handle Google OAuth callback — exchange code for tokens then redirect to settings."""
+    code  = request.args.get("code")
+    error = request.args.get("error")
+    if error or not code:
+        return redirect("/settings?google_error=" + (error or "no_code"))
+    try:
+        from connectors.google_business_profile import (
+            exchange_code, store_tokens, list_accounts, list_locations
+        )
+        tokens = exchange_code(code)
+        store_tokens(
+            tokens["access_token"],
+            tokens.get("refresh_token"),
+            tokens.get("expires_in", 3600),
+        )
+        # Discover and store locations automatically
+        try:
+            accounts = list_accounts()
+            with get_db() as conn:
+                for account in accounts:
+                    account_name = account.get("name", "")
+                    try:
+                        locs = list_locations(account_name)
+                        for loc in locs:
+                            conn.execute("""
+                                INSERT OR IGNORE INTO google_locations (id, name, title, account_name)
+                                VALUES (?, ?, ?, ?)
+                            """, (str(uuid.uuid4()), loc.get("name", ""),
+                                  loc.get("title", ""), account_name))
+                    except Exception as le:
+                        print(f"[GBP] Location fetch error for {account_name}: {le}")
+                conn.commit()
+        except Exception as ae:
+            print(f"[GBP] Account discovery error: {ae}")
+        return redirect("/settings?google_connected=1")
+    except Exception as e:
+        print(f"[GBP] OAuth callback error: {e}")
+        return redirect("/settings?google_error=token_exchange_failed")
+
+
+@app.route("/api/integrations/google/status")
+def google_status():
+    """Return connection status, last sync time, and location list."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT connected, updated_at FROM integrations WHERE service='google_business'"
+        ).fetchone()
+        locations = [dict(r) for r in conn.execute(
+            "SELECT name, title, address, last_synced FROM google_locations"
+        ).fetchall()]
+    return jsonify({
+        "connected":  bool(row and row["connected"]),
+        "updated_at": row["updated_at"] if row else None,
+        "locations":  locations,
+    })
+
+
+@app.route("/api/integrations/google/sync", methods=["POST"])
+def google_sync():
+    """Trigger a review sync for all connected locations."""
+    try:
+        from connectors.google_business_profile import sync_all_locations
+        results   = sync_all_locations()
+        total_new = sum(v for v in results.values() if isinstance(v, int))
+        return jsonify({"ok": True, "results": results, "total_new": total_new})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/integrations/google/disconnect", methods=["POST"])
+def google_disconnect():
+    """Revoke stored Google tokens."""
+    with get_db() as conn:
+        conn.execute("""
+            UPDATE integrations
+            SET connected=0, access_token=NULL, refresh_token=NULL
+            WHERE service='google_business'
+        """)
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/integrations/google/reply/<path:review_name>", methods=["POST"])
+def google_reply(review_name):
+    """Post or update a reply to a specific Google review."""
+    body       = request.get_json(force=True)
+    reply_text = body.get("reply_text", "").strip()
+    if not reply_text:
+        return jsonify({"error": "reply_text required"}), 400
+    try:
+        from connectors.google_business_profile import reply_to_review
+        ok = reply_to_review(review_name, reply_text)
+        return jsonify({"ok": ok})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Local dev entry point ─────────────────────────────────────────────────────
 
 if __name__ == "__main__":
