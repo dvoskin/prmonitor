@@ -177,14 +177,33 @@ Return ONLY valid JSON. No markdown. No extra text."""
 
         response = client.messages.create(
             model="claude-haiku-4-5",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}]
+            max_tokens=600,
+            messages=[
+                {"role": "user",      "content": prompt},
+                {"role": "assistant", "content": "{"},   # prefill forces valid JSON
+            ]
         )
-        result = json.loads(response.content[0].text.strip())
+
+        # Reconstruct full JSON — prefill contributed the opening "{"
+        raw = "{" + (response.content[0].text or "").strip()
+
+        # Safety: strip any accidental markdown code fences
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$",           "", raw).strip()
+
+        if not raw or raw == "{":
+            print(f"[AI] Empty response from API — using mock")
+            return _mock_analysis(title, snippet)
+
+        result = json.loads(raw)
         _ai_calls_this_scan   += 1
         _ai_rate_limit_streak  = 0
         return result
 
+    except json.JSONDecodeError as e:
+        print(f"[AI] JSON parse error ({e}) — raw was: {raw[:120]!r}")
+        return _mock_analysis(title, snippet)
     except Exception as e:
         err = str(e)
         if "429" in err or "rate_limit" in err:
