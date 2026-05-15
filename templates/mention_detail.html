@@ -82,10 +82,34 @@
   <div style="display:flex;flex-direction:column;gap:16px;">
 
     <!-- AI Analysis -->
-    <div class="card" style="padding:22px;">
-      <div style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:18px;display:flex;align-items:center;gap:7px;">
-        <span style="color:var(--accent-dk);">✦</span> AI Analysis
+    {% set is_rule_based = m.why_it_matters and 'rule-based' in m.why_it_matters.lower() %}
+    <div class="card" style="padding:22px;" id="ai-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span style="color:var(--accent-dk);font-size:.82rem;">✦</span>
+          <span style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;">AI Analysis</span>
+          {% if m.ai_used %}<span style="font-size:.65rem;font-weight:700;color:#14692a;background:#e6f9ee;border:1px solid #a3d9b5;border-radius:4px;padding:1px 7px;">Claude</span>{% endif %}
+          {% if is_rule_based %}<span style="font-size:.65rem;font-weight:700;color:#8f5e00;background:#fef8e7;border:1px solid #f0cc72;border-radius:4px;padding:1px 7px;">Rule-based</span>{% endif %}
+        </div>
+        <button id="reanalyze-btn" onclick="reanalyze()"
+          style="font-size:.74rem;font-weight:700;padding:5px 13px;border-radius:7px;cursor:pointer;
+                 border:1.5px solid var(--border);background:var(--bg);color:var(--text-2);
+                 display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;"
+          onmouseover="this.style.background='var(--accent-bg)';this.style.borderColor='var(--accent)';this.style.color='var(--accent-dk)'"
+          onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
+          <span id="reanalyze-spin" style="display:none;animation:spin .7s linear infinite;">↻</span>
+          <span id="reanalyze-label">✦ Re-analyze with AI</span>
+        </button>
       </div>
+
+      {% if is_rule_based %}
+      <div style="background:#fef8e7;border:1.5px solid #f0cc72;border-radius:9px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:9px;">
+        <span style="font-size:.85rem;">💡</span>
+        <span style="font-size:.79rem;color:#8f5e00;font-weight:600;">This mention was classified by the rule-based engine. Click <strong>Re-analyze with AI</strong> above for a full Claude-powered breakdown.</span>
+      </div>
+      {% endif %}
+
+      <div id="ai-body">
       {% if m.ai_summary or m.why_it_matters or m.recommended_action %}
         {% for label, val, icon in [
           ('Summary',            m.ai_summary,         '◎'),
@@ -106,9 +130,9 @@
         <div style="text-align:center;padding:24px;color:var(--text-4);">
           <div style="font-size:1.5rem;margin-bottom:8px;">🤖</div>
           <div style="font-size:.82rem;font-weight:500;">No AI analysis yet.</div>
-          <div style="font-size:.77rem;margin-top:4px;">Add an Anthropic API key in <strong>.env</strong> for full analysis.</div>
         </div>
       {% endif %}
+      </div>
     </div>
 
     <!-- Score Factors -->
@@ -227,6 +251,8 @@
 
 <style>
   @media (max-width: 900px) { #detail-grid { grid-template-columns:1fr !important; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
 </style>
 {% endblock %}
 {% block scripts %}
@@ -244,6 +270,61 @@
         setTimeout(() => el.style.display = 'none', 2200);
       }
     } catch(e) {}
+  }
+
+  async function reanalyze() {
+    const btn   = document.getElementById('reanalyze-btn');
+    const spin  = document.getElementById('reanalyze-spin');
+    const lbl   = document.getElementById('reanalyze-label');
+    btn.disabled = true;
+    spin.style.display = 'inline-block';
+    lbl.textContent = 'Analyzing…';
+
+    try {
+      const r = await fetch(`/api/mentions/${MID}/reanalyze`, { method:'POST' });
+      if (!r.ok) throw new Error(await r.text());
+      const d = await r.json();
+
+      // Update AI body in-place
+      const body = document.getElementById('ai-body');
+      const esc  = s => s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+      const pairs = [
+        ['◎','Summary',         d.ai_summary],
+        ['⚡','Why It Matters',  d.why_it_matters],
+        ['→','Recommended Action', d.recommended_action],
+      ];
+      body.innerHTML = pairs.filter(([,, v]) => v).map(([icon, label, val], i, arr) => `
+        <div style="margin-bottom:16px;${i < arr.length-1 ? 'padding-bottom:16px;border-bottom:1.5px solid var(--border);' : ''}">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
+            <span style="font-size:.7rem;color:var(--accent-dk);font-weight:800;">${icon}</span>
+            <span style="font-size:.7rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;">${label}</span>
+          </div>
+          <div style="font-size:.86rem;color:var(--text-2);line-height:1.72;font-weight:400;">${esc(val)}</div>
+        </div>
+      `).join('');
+
+      // Remove rule-based banner
+      const banner = document.querySelector('#ai-card .rule-based-banner');
+      if (banner) banner.remove();
+
+      // Swap badge to Claude
+      lbl.textContent = '✓ Updated';
+      btn.style.background = '#e6f9ee';
+      btn.style.borderColor = '#a3d9b5';
+      btn.style.color = '#14692a';
+      spin.style.display = 'none';
+      setTimeout(() => {
+        lbl.textContent = '✦ Re-analyze with AI';
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+        btn.disabled = false;
+      }, 2500);
+    } catch(e) {
+      lbl.textContent = 'Error — retry';
+      spin.style.display = 'none';
+      btn.disabled = false;
+    }
   }
 
   async function addNote() {

@@ -22,7 +22,7 @@ from datetime import datetime
 
 from db import get_db
 from ranker import calculate_score
-from ai_analysis import analyze_mention, reset_scan_counter
+from ai_analysis import analyze_mention, reset_scan_counter, end_batch_scan
 
 # Always-on connectors (zero API keys needed)
 from connectors.google_news_rss import search_google_news_rss
@@ -354,3 +354,6 @@ def run_scan() -> dict:
             )
             conn.commit()
         raise
+
+    finally:
+        end_batch_scan()   # allow individual AI calls to run uncapped after scan

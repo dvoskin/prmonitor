@@ -96,26 +96,47 @@ def _mock_analysis(title: str, snippet: str) -> dict:
     }
 
 
-# Max real AI calls per scan before falling back to mock for the rest
+# Max real AI calls per BATCH SCAN before falling back to mock for the rest.
+# Individual (non-scan) calls are never capped — they always try the real API.
 AI_CAP_PER_SCAN   = 40
 _RATE_LIMIT_GIVE_UP = 3
 
-_ai_calls_this_scan   = 0
-_ai_rate_limit_streak = 0
+_ai_calls_this_scan   = 0   # only counts during a batch scan
+_ai_rate_limit_streak = 0   # consecutive 429s — reset on success
+_in_batch_scan        = False
 
 
 def reset_scan_counter():
-    global _ai_calls_this_scan, _ai_rate_limit_streak
+    """Call at the start of each batch scan to reset per-scan limits."""
+    global _ai_calls_this_scan, _ai_rate_limit_streak, _in_batch_scan
     _ai_calls_this_scan   = 0
     _ai_rate_limit_streak = 0
+    _in_batch_scan        = True
 
 
-def analyze_mention(title: str, snippet: str) -> dict:
+def end_batch_scan():
+    """Call at the end of each batch scan so individual calls are never capped."""
+    global _in_batch_scan
+    _in_batch_scan = False
+
+
+def analyze_mention(title: str, snippet: str, force: bool = False) -> dict:
+    """
+    Analyze a mention with Claude AI.
+
+    force=True bypasses the batch scan cap — use for individual re-analysis,
+    manual mention adds, and integration syncs (GBP, Apify, etc.).
+    """
     global _ai_calls_this_scan, _ai_rate_limit_streak
 
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
-    if not api_key or _ai_calls_this_scan >= AI_CAP_PER_SCAN or _ai_rate_limit_streak >= _RATE_LIMIT_GIVE_UP:
+    if not api_key:
         return _mock_analysis(title, snippet)
+
+    # Apply cap only during a batch scan, and only when not forced
+    if not force and _in_batch_scan:
+        if _ai_calls_this_scan >= AI_CAP_PER_SCAN or _ai_rate_limit_streak >= _RATE_LIMIT_GIVE_UP:
+            return _mock_analysis(title, snippet)
 
     try:
         import anthropic

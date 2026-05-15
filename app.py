@@ -473,6 +473,66 @@ def api_mention_update(mid):
     return jsonify({"ok": True})
 
 
+@app.route("/api/mentions/<mid>/reanalyze", methods=["POST"])
+def api_reanalyze(mid):
+    """Force-rerun AI analysis on a single mention (bypasses batch cap)."""
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM mentions WHERE id=?", (mid,)).fetchone()
+        if not row:
+            return jsonify({"error": "Not found"}), 404
+        m = dict(row)
+
+    ai = analyze_mention(m["title"], m.get("snippet") or "", force=True)
+    score = calculate_score(
+        source_name=m["source_name"],
+        sentiment=ai["sentiment"],
+        engagement_count=m.get("engagement_count"),
+        published_at=m.get("published_at"),
+        title=m["title"],
+        snippet=m.get("snippet") or "",
+        related_surgeon=m.get("related_surgeon"),
+        related_location=m.get("related_location"),
+        related_procedure=m.get("related_procedure"),
+        narrative_type=ai.get("narrative_type"),
+    )
+
+    with get_db() as conn:
+        conn.execute("""
+            UPDATE mentions SET
+              sentiment=?, risk_level=?, impact_score=?,
+              narrative_type=?, ai_summary=?, why_it_matters=?,
+              recommended_action=?, response_draft=?,
+              patient_outreach_needed=?, public_response=?,
+              notify_leadership=?, needs_legal_review=?,
+              is_opportunity=?, is_threat=?,
+              raw_score_factors=?, ai_used=1,
+              updated_at=datetime('now')
+            WHERE id=?
+        """, (
+            ai["sentiment"], score["risk_level"], score["impact_score"],
+            ai.get("narrative_type", "general_mention"),
+            ai["ai_summary"], ai["why_it_matters"], ai["recommended_action"],
+            ai.get("response_draft", ""),
+            int(ai.get("patient_outreach_needed", False)),
+            int(ai.get("public_response", False)),
+            int(score["notify_leadership"]), int(score["needs_legal_review"]),
+            int(score["is_opportunity"]), int(score["is_threat"]),
+            json.dumps(score["score_factors"]),
+            mid,
+        ))
+        conn.commit()
+
+    return jsonify({
+        "ok": True,
+        "sentiment":   ai["sentiment"],
+        "risk_level":  score["risk_level"],
+        "impact_score":score["impact_score"],
+        "ai_summary":  ai["ai_summary"],
+        "why_it_matters": ai["why_it_matters"],
+        "recommended_action": ai["recommended_action"],
+    })
+
+
 @app.route("/api/mentions/<mid>/notes", methods=["POST"])
 def api_add_note(mid):
     data = request.json
