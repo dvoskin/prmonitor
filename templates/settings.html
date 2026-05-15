@@ -24,6 +24,31 @@
     <div id="kw-error" style="display:none;color:#9b0000;font-size:.79rem;margin-top:9px;background:#ffeaea;border:1.5px solid #f5a0a0;padding:8px 13px;border-radius:7px;font-weight:600;"></div>
   </div>
 
+  <!-- ── Suggested Keywords ── -->
+  <div id="suggestions-card" class="card" style="overflow:hidden;margin-bottom:16px;display:none;">
+    <div style="padding:14px 22px;border-bottom:1.5px solid var(--border);background:#f7f9ff;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="font-size:1rem;">💡</span>
+        <div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--text-1);">Suggested Keywords</div>
+          <div style="font-size:.76rem;color:var(--text-3);margin-top:2px;font-weight:500;">Terms found repeatedly in your mentions — add them to surface more related results in future scans.</div>
+        </div>
+      </div>
+      <span id="suggestions-badge" style="background:#e8f0fe;color:#1a3a9f;border:1.5px solid #9bb4f5;border-radius:6px;padding:3px 10px;font-size:.71rem;font-weight:800;white-space:nowrap;flex-shrink:0;"></span>
+    </div>
+
+    <!-- loading state -->
+    <div id="suggestions-loading" style="padding:22px;text-align:center;font-size:.82rem;color:var(--text-4);">Analyzing mention patterns…</div>
+
+    <!-- chip list -->
+    <div id="suggestions-list" style="display:none;padding:16px 20px 10px;display:flex;flex-wrap:wrap;gap:9px;"></div>
+
+    <!-- empty state -->
+    <div id="suggestions-empty" style="display:none;padding:22px 22px;font-size:.83rem;color:var(--text-4);font-style:italic;">
+      No new suggestions — your keyword list already covers what we're seeing in mentions, or you need more scan data.
+    </div>
+  </div>
+
   <!-- Keywords by category -->
   {% set cat_styles = {
     'brand':      ('#1a3a9f','#e8f0fe','#9bb4f5'),
@@ -236,5 +261,176 @@
     requestAnimationFrame(() => { el.style.maxHeight = '0'; el.style.padding = '0'; });
     setTimeout(() => el.remove(), 280);
   }
+
+  /* ── Keyword Suggestions ── */
+  const CAT_OPTIONS = ['brand','person','location','procedure','competitor'];
+
+  async function loadSuggestions() {
+    const card    = document.getElementById('suggestions-card');
+    const loading = document.getElementById('suggestions-loading');
+    const list    = document.getElementById('suggestions-list');
+    const empty   = document.getElementById('suggestions-empty');
+    const badge   = document.getElementById('suggestions-badge');
+
+    card.style.display = 'block';
+    loading.style.display = 'block';
+    list.style.display = 'none';
+    empty.style.display = 'none';
+
+    try {
+      const r = await fetch('/api/keywords/suggest');
+      const suggestions = await r.json();
+
+      loading.style.display = 'none';
+
+      if (!suggestions.length) {
+        empty.style.display = 'block';
+        return;
+      }
+
+      badge.textContent = suggestions.length + ' suggestion' + (suggestions.length !== 1 ? 's' : '');
+      list.style.display = 'flex';
+      list.innerHTML = '';
+
+      suggestions.forEach(s => {
+        const chip = buildChip(s);
+        list.appendChild(chip);
+      });
+    } catch(e) {
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+      empty.textContent = 'Could not load suggestions.';
+    }
+  }
+
+  function buildChip(s) {
+    const wrap = document.createElement('div');
+    wrap.id = 'sug-' + s.phrase_lower.replace(/[^a-z0-9]/g,'_');
+    wrap.style.cssText = `
+      display:inline-flex;align-items:center;gap:7px;
+      background:#f5f7fc;border:1.5px solid #d0d9ef;border-radius:9px;
+      padding:6px 10px 6px 12px;transition:border-color .15s,background .15s;
+      max-width:340px;
+    `;
+    wrap.onmouseover = () => { wrap.style.borderColor='#9bb4f5'; wrap.style.background='#eef2fb'; };
+    wrap.onmouseout  = () => { wrap.style.borderColor='#d0d9ef'; wrap.style.background='#f5f7fc'; };
+
+    // Phrase text + frequency badge
+    const label = document.createElement('div');
+    label.style.cssText = 'min-width:0;flex:1;';
+    label.innerHTML = `
+      <span style="font-size:.82rem;font-weight:700;color:var(--text-1);">${escHtml(s.phrase)}</span>
+      <span style="font-size:.7rem;color:#1a3a9f;background:#e8f0fe;border:1px solid #9bb4f5;border-radius:5px;padding:1px 7px;margin-left:6px;font-weight:700;">${s.mention_count}×</span>
+    `;
+
+    // Category selector
+    const sel = document.createElement('select');
+    sel.style.cssText = 'font-size:.72rem;border:1.5px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg);color:var(--text-2);cursor:pointer;height:28px;';
+    CAT_OPTIONS.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+      if (c === 'brand') opt.selected = true;
+      sel.appendChild(opt);
+    });
+
+    // Add button
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Add';
+    addBtn.style.cssText = `
+      font-size:.73rem;font-weight:700;padding:4px 11px;border-radius:6px;cursor:pointer;
+      background:var(--accent);color:#fff;border:1.5px solid var(--accent-dk);
+      white-space:nowrap;transition:opacity .12s;height:28px;
+    `;
+    addBtn.onmouseover = () => addBtn.style.opacity = '.82';
+    addBtn.onmouseout  = () => addBtn.style.opacity = '1';
+    addBtn.onclick = async () => {
+      addBtn.disabled = true;
+      addBtn.textContent = '…';
+      const r = await fetch('/api/keywords', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ phrase: s.phrase, category: sel.value })
+      });
+      if (r.ok) {
+        _chipFade(wrap);
+        _updateBadge();
+        // Soft banner
+        showBanner(`"${s.phrase}" added as ${sel.value} keyword`);
+      } else {
+        const d = await r.json();
+        showBanner(d.error || 'Failed to add', true);
+        addBtn.disabled = false;
+        addBtn.textContent = '+ Add';
+      }
+    };
+
+    // Dismiss button
+    const dimBtn = document.createElement('button');
+    dimBtn.title = 'Dismiss suggestion';
+    dimBtn.textContent = '✕';
+    dimBtn.style.cssText = `
+      width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);
+      background:transparent;cursor:pointer;color:var(--text-4);font-size:.76rem;
+      display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;
+    `;
+    dimBtn.onmouseover = () => { dimBtn.style.background='#ffeaea'; dimBtn.style.borderColor='#f5a0a0'; dimBtn.style.color='#9b0000'; };
+    dimBtn.onmouseout  = () => { dimBtn.style.background='transparent'; dimBtn.style.borderColor='var(--border)'; dimBtn.style.color='var(--text-4)'; };
+    dimBtn.onclick = async () => {
+      await fetch('/api/keywords/suggest/dismiss', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ phrase: s.phrase_lower })
+      });
+      _chipFade(wrap);
+      _updateBadge();
+    };
+
+    wrap.append(label, sel, addBtn, dimBtn);
+    return wrap;
+  }
+
+  function _chipFade(el) {
+    el.style.transition = 'opacity .18s, transform .18s';
+    el.style.opacity = '0';
+    el.style.transform = 'scale(.93)';
+    setTimeout(() => el.remove(), 200);
+  }
+
+  function _updateBadge() {
+    const list  = document.getElementById('suggestions-list');
+    const badge = document.getElementById('suggestions-badge');
+    const empty = document.getElementById('suggestions-empty');
+    const count = list ? list.children.length : 0;
+    if (badge) badge.textContent = count + ' suggestion' + (count !== 1 ? 's' : '');
+    if (count === 0 && empty) { list.style.display = 'none'; empty.style.display = 'block'; empty.textContent = 'All caught up — no remaining suggestions.'; }
+  }
+
+  function showBanner(msg, isErr=false) {
+    const b = document.createElement('div');
+    b.textContent = msg;
+    b.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      padding:10px 20px;border-radius:10px;font-size:.82rem;font-weight:700;
+      box-shadow:0 4px 18px rgba(0,0,0,.14);z-index:9999;
+      background:${isErr?'#9b0000':'#14692a'};color:#fff;
+      animation:fadeUp .18s ease;white-space:nowrap;
+    `;
+    document.body.appendChild(b);
+    setTimeout(() => { b.style.opacity='0'; b.style.transition='opacity .25s'; setTimeout(() => b.remove(), 260); }, 2200);
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Load suggestions on page ready
+  document.addEventListener('DOMContentLoaded', loadSuggestions);
 </script>
+<style>
+@keyframes fadeUp {
+  from { opacity:0; transform:translateX(-50%) translateY(6px); }
+  to   { opacity:1; transform:translateX(-50%) translateY(0); }
+}
+</style>
 {% endblock %}

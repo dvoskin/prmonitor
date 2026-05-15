@@ -120,6 +120,11 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now'))
         );
 
+        CREATE TABLE IF NOT EXISTS dismissed_suggestions (
+            phrase      TEXT PRIMARY KEY,
+            dismissed_at TEXT DEFAULT (datetime('now'))
+        );
+
         CREATE INDEX IF NOT EXISTS idx_mentions_impact ON mentions(impact_score DESC);
         CREATE INDEX IF NOT EXISTS idx_mentions_status ON mentions(status);
         CREATE INDEX IF NOT EXISTS idx_mentions_sentiment ON mentions(sentiment);

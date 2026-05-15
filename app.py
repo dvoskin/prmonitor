@@ -578,6 +578,143 @@ def api_negative_keywords():
             return jsonify({"ok": True})
 
 
+@app.route("/api/keywords/suggest")
+def api_keyword_suggestions():
+    """
+    Extract frequently co-occurring n-gram phrases from existing mention titles/snippets.
+    Returns ranked suggestions the user can promote to tracked keywords.
+    Excludes: already-tracked keywords, dismissed suggestions, stop-word-only grams.
+    """
+    import re
+    from collections import defaultdict
+
+    STOP_WORDS = {
+        "a","an","the","is","in","on","at","to","for","of","and","or","but",
+        "not","with","this","that","it","its","are","was","were","be","been",
+        "being","have","has","had","do","does","did","will","would","could",
+        "should","may","might","shall","can","from","by","as","if","then",
+        "than","so","yet","my","your","his","her","our","their","we","they",
+        "he","she","i","me","him","us","them","who","what","which","when",
+        "where","why","how","all","each","every","about","after","before",
+        "into","through","during","up","down","out","over","under","again",
+        "no","very","just","also","new","one","two","three","more","said",
+        "says","say","like","make","made","know","see","get","got","go",
+        "want","need","now","still","even","many","much","some","such",
+        "same","other","another","first","last","long","great","little",
+        "good","bad","here","there","these","those","using","used","via",
+        "per","due","vs","re","am","pm","since","after","before","during",
+        "between","among","within","without","against","along","around",
+        "behind","beside","beyond","inside","outside","until","upon",
+        # HTML artifacts & junk
+        "nbsp","amp","quot","apos","lt","gt","http","https","www","com",
+        "html","php","review","reviews","posted","post","comment","comments",
+        "read","reading","article","page","site","link","click","here",
+        "open","view","watch","share","portal","newswire","cnj",
+    }
+
+    def _clean_text(text: str) -> str:
+        """Strip HTML tags, decode common entities, normalize whitespace."""
+        text = re.sub(r"<[^>]+>", " ", text)                   # strip tags
+        text = re.sub(r"&[a-zA-Z]+;", " ", text)               # named entities
+        text = re.sub(r"&#\d+;", " ", text)                    # numeric entities
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, title, snippet FROM mentions WHERE title IS NOT NULL"
+        ).fetchall()
+
+        existing = {
+            row[0].lower().strip()
+            for row in conn.execute("SELECT phrase FROM keywords").fetchall()
+        }
+
+        dismissed = {
+            row[0] for row in conn.execute(
+                "SELECT phrase FROM dismissed_suggestions"
+            ).fetchall()
+        }
+
+    # phrase → set of mention IDs that contain it
+    phrase_mentions: dict = defaultdict(set)
+
+    for row in rows:
+        mid   = row["id"]
+        title = _clean_text(row["title"] or "")
+        snip  = _clean_text(row["snippet"] or "")
+
+        # Titles are more signal-dense — process them twice
+        for text in (title, title, snip):
+            # Pull clean word tokens (preserve original casing for display)
+            tokens = re.findall(r"[A-Za-z][a-zA-Z']*", text)
+            lowers = [t.lower() for t in tokens]
+            n_tok  = len(tokens)
+
+            for n in (2, 3, 4):
+                for i in range(n_tok - n + 1):
+                    chunk_lower = lowers[i:i + n]
+                    chunk_orig  = tokens[i:i + n]
+
+                    # Must not start or end on a stop word
+                    if chunk_lower[0] in STOP_WORDS or chunk_lower[-1] in STOP_WORDS:
+                        continue
+
+                    # Need at least one content word longer than 3 chars
+                    content = [w for w in chunk_lower
+                               if w not in STOP_WORDS and len(w) > 3]
+                    if not content:
+                        continue
+
+                    phrase_lower = " ".join(chunk_lower)
+                    phrase_orig  = " ".join(chunk_orig)
+
+                    # Skip if already tracked or dismissed
+                    if phrase_lower in existing or phrase_lower in dismissed:
+                        continue
+
+                    # Skip if entirely covered by an existing keyword
+                    # (e.g. "Plastic Surgery" when "Goals Plastic Surgery" is tracked)
+                    if any(phrase_lower in ex for ex in existing):
+                        continue
+
+                    # Store with original casing (first seen wins for display)
+                    key = phrase_lower
+                    if key not in phrase_mentions:
+                        phrase_mentions[key] = {"ids": set(), "display": phrase_orig}
+                    phrase_mentions[key]["ids"].add(mid)
+
+    # Score: unique mention count; require ≥ 2 distinct mentions
+    suggestions = []
+    for phrase_lower, data in phrase_mentions.items():
+        count = len(data["ids"])
+        if count < 2:
+            continue
+        suggestions.append({
+            "phrase":        data["display"],
+            "phrase_lower":  phrase_lower,
+            "mention_count": count,
+        })
+
+    suggestions.sort(key=lambda x: -x["mention_count"])
+    return jsonify(suggestions[:40])
+
+
+@app.route("/api/keywords/suggest/dismiss", methods=["POST"])
+def api_dismiss_suggestion():
+    """Persist a dismissed suggestion so it won't resurface."""
+    data   = request.json or {}
+    phrase = (data.get("phrase") or "").strip().lower()
+    if not phrase:
+        return jsonify({"error": "phrase required"}), 400
+    with get_db() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO dismissed_suggestions (phrase) VALUES (?)", (phrase,)
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
 @app.route("/api/data/reset", methods=["POST"])
 def api_data_reset():
     """Wipe all scanned mentions, alerts, and scan logs. Keeps keywords and manual mentions."""
