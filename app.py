@@ -1021,6 +1021,129 @@ def google_reply(review_name):
         return jsonify({"error": str(e)}), 500
 
 
+# ── Firecrawl — deep page indexing ────────────────────────────────────────────
+
+@app.route("/api/mentions/<mid>/deep-index", methods=["POST"])
+def mention_deep_index(mid):
+    """Manually trigger Firecrawl deep-indexing for a mention."""
+    if not os.getenv("FIRECRAWL_API_KEY"):
+        return jsonify({"error": "FIRECRAWL_API_KEY not configured"}), 400
+    try:
+        from connectors.firecrawl_connector import deep_index_mention
+        ok = deep_index_mention(mid)
+        return jsonify({"ok": ok})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/mentions/<mid>/context")
+def mention_context(mid):
+    """Return stored Firecrawl context for a mention."""
+    try:
+        from connectors.firecrawl_connector import get_mention_context
+        ctx = get_mention_context(mid)
+        return jsonify(ctx or {})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/integrations/firecrawl/batch", methods=["POST"])
+def firecrawl_batch():
+    """Batch deep-index all high-risk mentions that haven't been indexed yet."""
+    if not os.getenv("FIRECRAWL_API_KEY"):
+        return jsonify({"error": "FIRECRAWL_API_KEY not configured"}), 400
+
+    body  = request.get_json(force=True) or {}
+    limit = int(body.get("limit", 20))
+
+    def _run():
+        from connectors.firecrawl_connector import batch_deep_index_high_risk
+        batch_deep_index_high_risk(limit=limit)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"ok": True, "message": f"Batch deep-index started (limit={limit})"})
+
+
+@app.route("/api/integrations/firecrawl/status")
+def firecrawl_status():
+    """Return Firecrawl integration status and counts."""
+    configured = bool(os.getenv("FIRECRAWL_API_KEY"))
+    with get_db() as conn:
+        indexed = conn.execute(
+            "SELECT COUNT(*) FROM mentions WHERE deep_indexed=1"
+        ).fetchone()[0]
+        pending = conn.execute(
+            "SELECT COUNT(*) FROM mentions WHERE deep_indexed=0 AND url IS NOT NULL AND impact_score >= 55"
+        ).fetchone()[0]
+    return jsonify({"configured": configured, "indexed": indexed, "pending_high_risk": pending})
+
+
+# ── Apify — social scraping ───────────────────────────────────────────────────
+
+@app.route("/api/integrations/apify/run", methods=["POST"])
+def apify_run():
+    """Start an Apify actor run for a platform + keyword."""
+    if not os.getenv("APIFY_API_TOKEN"):
+        return jsonify({"error": "APIFY_API_TOKEN not configured"}), 400
+
+    body     = request.get_json(force=True) or {}
+    platform = body.get("platform", "").strip().lower()
+    keyword  = body.get("keyword", "").strip()
+    actor_id = body.get("actor_id")
+
+    if not platform or not keyword:
+        return jsonify({"error": "platform and keyword required"}), 400
+
+    try:
+        from connectors.apify_connector import start_actor_run, poll_and_ingest_job
+        job = start_actor_run(platform, keyword, actor_id=actor_id)
+
+        # Poll + ingest in background thread
+        def _poll(jid):
+            poll_and_ingest_job(jid)
+
+        threading.Thread(target=_poll, args=(job["job_id"],), daemon=True).start()
+        return jsonify({"ok": True, **job})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/integrations/apify/jobs")
+def apify_jobs():
+    """Return recent Apify jobs."""
+    with get_db() as conn:
+        jobs = [dict(r) for r in conn.execute("""
+            SELECT id, run_id, actor, keyword, platform, status,
+                   items_count, started_at, completed_at
+            FROM apify_jobs
+            ORDER BY started_at DESC
+            LIMIT 50
+        """).fetchall()]
+    return jsonify(jobs)
+
+
+@app.route("/api/integrations/apify/jobs/<job_id>")
+def apify_job_detail(job_id):
+    """Return a single Apify job row."""
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM apify_jobs WHERE id=?", (job_id,)).fetchone()
+    if not row:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(dict(row))
+
+
+@app.route("/api/integrations/apify/status")
+def apify_status():
+    """Return Apify integration status and job counts."""
+    configured = bool(os.getenv("APIFY_API_TOKEN"))
+    with get_db() as conn:
+        total     = conn.execute("SELECT COUNT(*) FROM apify_jobs").fetchone()[0]
+        completed = conn.execute("SELECT COUNT(*) FROM apify_jobs WHERE status='completed'").fetchone()[0]
+        running   = conn.execute("SELECT COUNT(*) FROM apify_jobs WHERE status='running'").fetchone()[0]
+    return jsonify({"configured": configured, "total_jobs": total,
+                    "completed": completed, "running": running})
+
+
 # ── Local dev entry point ─────────────────────────────────────────────────────
 
 if __name__ == "__main__":

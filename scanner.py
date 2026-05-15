@@ -344,6 +344,19 @@ def run_scan() -> dict:
             conn.commit()
 
         print(f"[Scanner] Done — {new_count} new mentions saved in {duration}ms")
+
+        # ── Auto deep-index high-risk mentions via Firecrawl ─────────────────
+        if new_count > 0 and os.getenv("FIRECRAWL_API_KEY"):
+            import threading as _t
+            def _deep_index_bg():
+                try:
+                    from connectors.firecrawl_connector import batch_deep_index_high_risk
+                    results = batch_deep_index_high_risk(limit=15)
+                    print(f"[Scanner] Firecrawl post-scan: {results}")
+                except Exception as fc_err:
+                    print(f"[Scanner] Firecrawl post-scan error: {fc_err}")
+            _t.Thread(target=_deep_index_bg, daemon=True).start()
+
         return {"new_count": new_count, "scanned": len(deduped)}
 
     except Exception as e:
