@@ -4,15 +4,15 @@
 
 <!-- Alert Banner -->
 {% if stats and (stats.critical > 0 or stats.unread_alerts > 0) %}
-<div id="alert-banner" style="display:flex;align-items:center;gap:10px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:10px;padding:9px 14px;margin-bottom:12px;flex-wrap:wrap;">
-  <span style="font-size:.92rem;flex-shrink:0;">🚨</span>
-  <div style="flex:1;min-width:0;font-size:.76rem;font-weight:600;color:#9b1c1c;line-height:1.4;">
+<div id="alert-banner" style="display:flex;align-items:center;gap:10px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;">
+  <span style="font-size:1rem;flex-shrink:0;">🚨</span>
+  <div style="flex:1;min-width:0;font-size:.84rem;font-weight:600;color:#9b1c1c;line-height:1.4;">
     {% if stats.critical > 0 %}<strong>{{ stats.critical }} critical</strong> mention{{ 's' if stats.critical != 1 }} need immediate attention{% endif %}
     {% if stats.critical > 0 and stats.unread_alerts > 0 %} &nbsp;·&nbsp; {% endif %}
     {% if stats.unread_alerts > 0 %}<strong>{{ stats.unread_alerts }}</strong> unread alert{{ 's' if stats.unread_alerts != 1 }}{% endif %}
   </div>
-  {% if stats.critical > 0 %}<a href="/mentions?view=critical" style="font-size:.72rem;color:#c0000a;font-weight:700;text-decoration:none;padding:3px 9px;background:rgba(192,0,10,.08);border-radius:6px;border:1px solid rgba(192,0,10,.2);white-space:nowrap;flex-shrink:0;">View Critical →</a>{% endif %}
-  <button onclick="this.closest('#alert-banner').style.display='none'" style="width:20px;height:20px;border:none;background:none;cursor:pointer;color:#9ca3af;font-size:.85rem;flex-shrink:0;padding:0;line-height:1;">✕</button>
+  {% if stats.critical > 0 %}<a href="/mentions?view=critical" style="font-size:.78rem;color:#c0000a;font-weight:700;text-decoration:none;padding:5px 11px;background:rgba(192,0,10,.08);border-radius:6px;border:1px solid rgba(192,0,10,.2);white-space:nowrap;flex-shrink:0;">View Critical →</a>{% endif %}
+  <button onclick="this.closest('#alert-banner').style.display='none'" style="width:28px;height:28px;border:none;background:none;cursor:pointer;color:#9ca3af;font-size:.9rem;flex-shrink:0;padding:0;line-height:1;">✕</button>
 </div>
 {% endif %}
 
@@ -271,53 +271,62 @@
   {% for m in mentions %}
   {% set rl = m.risk_level or 'low' %}
   <div class="mobile-mention-card" id="mcard-{{ m.id }}" onclick="window.location='/mentions/{{ m.id }}'"
-       style="display:flex;align-items:flex-start;gap:10px;border-radius:10px;padding:10px 12px;border:1px solid var(--border);background:var(--surface);margin-bottom:8px;min-height:72px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent;">
+       style="display:flex;align-items:flex-start;gap:10px;border-radius:11px;padding:12px;border:1px solid var(--border);background:var(--surface);margin-bottom:9px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
     <!-- Score box -->
-    <div style="flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-      <div class="score-box score-{{ rl }}" style="width:36px;height:36px;font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;border-radius:8px;">{{ m.impact_score or '—' }}</div>
+    <div style="flex-shrink:0;display:flex;align-items:flex-start;padding-top:2px;">
+      <div class="score-box score-{{ rl }}" style="width:40px;height:40px;font-size:.82rem;font-weight:800;display:flex;align-items:center;justify-content:center;border-radius:9px;">{{ m.impact_score or '—' }}</div>
     </div>
     <!-- Main content -->
-    <div style="flex:1;min-width:0;padding-right:32px;">
+    <div style="flex:1;min-width:0;">
       <!-- Title -->
-      <div style="font-size:.82rem;font-weight:700;color:var(--text-1);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ m.title }}</div>
-      <!-- Platform + sentiment dot -->
-      <div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
-        <span style="font-size:.78rem;">{{ src_icon.get(m.source_name,'🌐') }}</span>
-        <span style="font-size:.68rem;color:var(--text-3);font-weight:500;">{{ m.platform or m.source_name }}</span>
-        <span style="width:6px;height:6px;border-radius:50%;background:{{ sent_dot.get(m.sentiment,'#9ba5b5') }};display:inline-block;flex-shrink:0;"></span>
-        <span style="font-size:.65rem;color:var(--text-4);">{{ (m.sentiment or 'neutral')|capitalize }}</span>
+      <div style="font-size:.92rem;font-weight:700;color:var(--text-1);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ m.title }}</div>
+      <!-- Platform + sentiment -->
+      <div style="display:flex;align-items:center;gap:5px;margin-top:4px;">
+        <span style="font-size:.86rem;">{{ src_icon.get(m.source_name,'🌐') }}</span>
+        <span style="font-size:.76rem;color:var(--text-3);font-weight:500;">{{ m.platform or m.source_name }}</span>
+        <span style="width:7px;height:7px;border-radius:50%;background:{{ sent_dot.get(m.sentiment,'#9ba5b5') }};display:inline-block;flex-shrink:0;"></span>
+        <span style="font-size:.72rem;color:var(--text-4);">{{ (m.sentiment or 'neutral')|capitalize }}</span>
       </div>
       <!-- Flags + status + date row -->
-      <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
-        <!-- Flag icons -->
-        <span style="font-size:.75rem;line-height:1;">
+      <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <span style="font-size:.82rem;line-height:1;">
           {% if m.needs_legal_review %}⚖{% endif %}{% if m.notify_leadership %}🚨{% endif %}{% if m.is_opportunity %}⭐{% endif %}{% if m.is_threat %}⚠{% endif %}
         </span>
-        <!-- Status badge -->
-        <span class="badge badge-{{ m.status or 'new' }} mobile-status-badge-{{ m.id }}" style="font-size:.6rem;padding:2px 6px;">{{ (m.status or 'new')|capitalize }}</span>
-        <!-- Date -->
+        <span class="badge badge-{{ m.status or 'new' }} mobile-status-badge-{{ m.id }}" style="font-size:.69rem;padding:2px 8px;">{{ (m.status or 'new')|capitalize }}</span>
         {% if m.published_at %}
-        <span style="font-size:.63rem;color:var(--text-4);margin-left:auto;">{{ m.published_at[:10] }}</span>
+        <span style="font-size:.69rem;color:var(--text-4);margin-left:auto;">{{ m.published_at[:10] }}</span>
         {% endif %}
       </div>
-    </div>
-    <!-- Classify button (top-right) -->
-    <div style="position:absolute;top:8px;right:8px;" onclick="event.stopPropagation()">
-      <button class="classify-btn" onclick="toggleClassifyMenu(event,'mob-{{ m.id }}')" title="Classify mention"
-              style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-3);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">⊞</button>
-      <!-- Mobile classify menu (renders as bottom sheet via CSS) -->
-      <div id="cm-mob-{{ m.id }}" class="classify-menu" style="display:none;position:absolute;right:0;top:32px;z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:5px;min-width:130px;">
-        {% for lbl, lcolor in [('Critical','#c0000a'),('Negative','#e53935'),('Positive','#16a34a'),('Legal','#7c3aed'),('Opportunity','#d97706'),('Archived','#6b7280')] %}
-        <button onclick="classifyOne('{{ m.id }}','{{ lbl.lower() }}',this);closeMobileClassify('mob-{{ m.id }}')" style="display:block;width:100%;text-align:left;padding:8px 14px;font-size:.78rem;font-weight:600;color:{{ lcolor }};background:transparent;border:none;cursor:pointer;" onmouseover="this.style.background='{{ lcolor }}18'" onmouseout="this.style.background='transparent'">● {{ lbl }}</button>
-        {% endfor %}
+      <!-- Action row: Label button + View link -->
+      <div style="display:flex;align-items:center;gap:8px;margin-top:9px;" onclick="event.stopPropagation()">
+        <!-- Label button -->
+        <div style="position:relative;flex:1;">
+          <button class="classify-btn" onclick="toggleClassifyMenu(event,'mob-{{ m.id }}')" title="Add label"
+                  style="width:100%;height:36px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-2);font-size:.8rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;transition:all .12s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
+            🏷 <span>Add Label</span>
+          </button>
+          <!-- Mobile classify menu (bottom sheet via CSS) -->
+          <div id="cm-mob-{{ m.id }}" class="classify-menu" style="display:none;position:absolute;left:0;top:40px;z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:5px;min-width:160px;">
+            {% for lbl, lcolor in [('Critical','#c0000a'),('Negative','#e53935'),('Positive','#16a34a'),('Legal','#7c3aed'),('Opportunity','#d97706'),('Archived','#6b7280')] %}
+            <button onclick="classifyOne('{{ m.id }}','{{ lbl.lower() }}',this);closeMobileClassify('mob-{{ m.id }}')" style="display:block;width:100%;text-align:left;padding:10px 16px;font-size:.84rem;font-weight:600;color:{{ lcolor }};background:transparent;border:none;cursor:pointer;" onmouseover="this.style.background='{{ lcolor }}18'" onmouseout="this.style.background='transparent'">● {{ lbl }}</button>
+            {% endfor %}
+          </div>
+        </div>
+        <!-- View source link -->
+        {% if m.url %}
+        <a href="{{ m.url }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()"
+           style="height:36px;padding:0 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-2);font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:5px;text-decoration:none;white-space:nowrap;transition:all .12s;flex-shrink:0;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent-dk)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
+          ↗ View
+        </a>
+        {% endif %}
       </div>
     </div>
   </div>
   {% else %}
   <div style="padding:52px 16px;text-align:center;">
     <div style="font-size:2rem;margin-bottom:10px;opacity:.35;">🔍</div>
-    <div style="font-size:.88rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">No mentions found</div>
-    <div style="font-size:.78rem;color:var(--text-3);">
+    <div style="font-size:.96rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">No mentions found</div>
+    <div style="font-size:.84rem;color:var(--text-3);">
       {% if not view %}Click <strong style="color:var(--accent-dk);">Scan Now</strong> in the header to start.
       {% else %}Try adjusting your filters or view.{% endif %}
     </div>
@@ -327,10 +336,10 @@
   <!-- Mobile pagination -->
   {% if total_pages > 1 %}
   <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px;flex-wrap:wrap;gap:8px;margin-top:4px;">
-    <span style="font-size:.73rem;color:var(--text-3);font-weight:500;">Page {{ page }} of {{ total_pages }} · {{ total }} total</span>
+    <span style="font-size:.78rem;color:var(--text-3);font-weight:500;">Page {{ page }} of {{ total_pages }} · {{ total }} total</span>
     <div style="display:flex;gap:6px;">
-      {% if page > 1 %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page-1 }}" class="btn-ghost" style="height:44px;padding:0 16px;font-size:.78rem;">← Prev</a>{% endif %}
-      {% if page < total_pages %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page+1 }}" class="btn-ghost" style="height:44px;padding:0 16px;font-size:.78rem;">Next →</a>{% endif %}
+      {% if page > 1 %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page-1 }}" class="btn-ghost" style="height:44px;padding:0 16px;font-size:.82rem;">← Prev</a>{% endif %}
+      {% if page < total_pages %}<a href="?{% for k,v in request.args.items() %}{% if k!='page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page+1 }}" class="btn-ghost" style="height:44px;padding:0 16px;font-size:.82rem;">Next →</a>{% endif %}
     </div>
   </div>
   {% endif %}
@@ -439,6 +448,13 @@
     .hide-sm { display:none !important; }
     .show-sm-only { display:flex !important; }
 
+    /* Bigger label tabs on mobile */
+    #view-tabs .label-tab {
+      padding: 7px 14px !important;
+      font-size: .82rem !important;
+    }
+    #view-tabs .label-tab span { font-size:.7rem !important; }
+
     /* Filters: hidden by default, toggled by JS; stack vertically when visible */
     #filters-row {
       flex-direction:column !important;
@@ -446,26 +462,28 @@
     }
     #filters-row > div { min-width:unset !important; width:100% !important; }
     #filters-row select,
-    #filters-row input { width:100% !important; height:44px !important; box-sizing:border-box; }
+    #filters-row input { width:100% !important; height:48px !important; font-size:.84rem !important; box-sizing:border-box; }
     #extra-filters {
       flex-direction:column !important;
       align-items:stretch !important;
       width:100% !important;
-      display:flex !important; /* override desktop hide */
+      display:flex !important;
     }
-    #extra-filters select { width:100% !important; height:44px !important; }
+    #extra-filters select { width:100% !important; height:48px !important; font-size:.84rem !important; }
 
-    /* Bulk action bar: full-width, docked above bottom nav */
+    /* Bulk action bar: full-width, docked to bottom */
     #bulk-bar {
       left:0 !important;
       right:0 !important;
-      bottom:58px !important;
+      bottom:0 !important;
+      bottom:env(safe-area-inset-bottom, 0px) !important;
       transform:none !important;
       border-radius:0 !important;
       min-width:unset !important;
       max-width:100% !important;
-      padding:10px 14px 12px !important;
+      padding:12px 14px max(14px, env(safe-area-inset-bottom)) !important;
     }
+    #bulk-bar button { font-size:.78rem !important; }
 
     /* Add mention modal: full-screen */
     #add-modal { padding:0 !important; align-items:stretch !important; }
@@ -484,14 +502,14 @@
       position:fixed !important;
       left:0 !important;
       right:0 !important;
-      bottom:58px !important;
+      bottom:0 !important;
       top:auto !important;
-      border-radius:14px 14px 0 0 !important;
+      border-radius:16px 16px 0 0 !important;
       min-width:100% !important;
-      padding:10px 0 12px !important;
-      box-shadow:0 -4px 32px rgba(0,0,0,.18) !important;
+      padding:14px 0 max(20px,env(safe-area-inset-bottom)) !important;
+      box-shadow:0 -4px 32px rgba(0,0,0,.22) !important;
     }
-    .classify-menu button { padding:12px 20px !important; font-size:.86rem !important; }
+    .classify-menu button { padding:14px 24px !important; font-size:.92rem !important; }
   }
 </style>
 
