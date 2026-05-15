@@ -9,18 +9,22 @@
   /* ── Toolbar ── */
   #radar-toolbar {
     position: fixed;
-    top: 52px;
-    left: 210px;
+    top: var(--tb-h);
+    left: var(--sb-w);
     right: 0;
     height: 44px;
     background: #0c0e16;
     border-bottom: 1px solid #1a1f2e;
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 14px;
     gap: 8px;
     z-index: 90;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  #radar-toolbar::-webkit-scrollbar { display: none; }
 
   .filter-chip {
     display: inline-flex;
@@ -64,8 +68,8 @@
   /* ── Legend ── */
   #radar-legend {
     position: fixed;
-    left: calc(210px + 16px);
-    top: calc(52px + 44px + 14px);
+    left: calc(var(--sb-w) + 16px);
+    top: calc(var(--tb-h) + 44px + 14px);
     background: rgba(12,14,22,0.88);
     border: 1px solid #1e2433;
     border-radius: 10px;
@@ -92,10 +96,10 @@
   /* ── Canvas ── */
   #radar-canvas {
     position: fixed;
-    left: 210px;
-    top: calc(52px + 44px);
-    width: calc(100vw - 210px);
-    height: calc(100vh - 52px - 44px);
+    left: var(--sb-w);
+    top: calc(var(--tb-h) + 44px);
+    width: calc(100vw - var(--sb-w));
+    height: calc(100vh - var(--tb-h) - 44px);
     display: block;
     background: #080a0f;
   }
@@ -141,7 +145,7 @@
   #detail-panel {
     position: fixed;
     right: 0;
-    top: 52px;
+    top: var(--tb-h);
     bottom: 0;
     width: 380px;
     transform: translateX(100%);
@@ -256,10 +260,10 @@
   /* ── Loading overlay ── */
   #radar-loading {
     position: fixed;
-    left: 210px;
-    top: calc(52px + 44px);
-    width: calc(100vw - 210px);
-    height: calc(100vh - 52px - 44px);
+    left: var(--sb-w);
+    top: calc(var(--tb-h) + 44px);
+    width: calc(100vw - var(--sb-w));
+    height: calc(100vh - var(--tb-h) - 44px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -280,6 +284,17 @@
     animation: spin .9s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Mobile overrides ── */
+  @media (max-width: 768px) {
+    :root { --sb-w: 0px; --tb-h: 50px; }
+    #radar-toolbar  { left: 0; top: 50px; padding: 0 10px; }
+    #radar-legend   { display: none; }   /* too cramped on mobile */
+    #radar-canvas   { left: 0; top: calc(50px + 44px); width: 100vw; height: calc(100vh - 50px - 44px); }
+    #radar-loading  { left: 0; top: calc(50px + 44px); width: 100vw; height: calc(100vh - 50px - 44px); }
+    #detail-panel   { top: 50px; width: 100vw; }
+    .filter-chip    { padding: 4px 10px; font-size: .68rem; }
+  }
 </style>
 
 <!-- Filter Toolbar -->

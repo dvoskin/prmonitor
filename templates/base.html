@@ -141,39 +141,28 @@
       #sidebar { transform:translateX(-100%); transition:transform .22s cubic-bezier(.4,0,.2,1); }
       #sidebar.open { transform:translateX(0); box-shadow:0 0 40px rgba(0,0,0,.4); }
       #sidebar-backdrop.open { display:block; }
-      #main-wrap { margin-left:0; padding-bottom:62px; }
+      #main-wrap { margin-left:0; }
       #topbar { padding:0 14px; height:50px; }
       #topbar-info { display:none !important; }
-      #page-content { padding:14px; padding-bottom:80px; }
-      #bottom-nav { display:flex !important; }
+      #page-content { padding:14px; }
       #hamburger-btn { display:flex !important; }
       .hide-sm { display:none !important; }
       .sm-full { width:100% !important; min-width:0 !important; }
-      /* Scan button: hide text label, icon-only on mobile */
       .scan-label-text { display:none; }
-      /* Alert panel: fixed overlay above bottom nav */
+      /* Alert panel: fixed bottom sheet */
       #alert-panel {
         position:fixed !important;
-        left:12px !important;
-        right:12px !important;
-        top:auto !important;
-        bottom:72px !important;
+        left:12px !important; right:12px !important;
+        top:auto !important; bottom:16px !important;
         width:auto !important;
-        max-height:60vh !important;
-        overflow-y:auto !important;
+        max-height:60vh !important; overflow-y:auto !important;
       }
     }
 
-    /* ── Bottom nav (mobile only) ── */
-    #bottom-nav {
-      display:none; position:fixed; bottom:0; left:0; right:0; z-index:200;
-      background:var(--surface); border-top:1px solid var(--border);
-      padding:5px 0 max(5px,env(safe-area-inset-bottom));
-      box-shadow:0 -2px 12px rgba(0,0,0,.07);
+    /* Dashboard nav link hidden on mobile */
+    @media (max-width: 768px) {
+      a.nav-link[href="/dashboard"] { display:none; }
     }
-    .bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px 4px; text-decoration:none; color:var(--text-3); font-size:.58rem; font-weight:600; transition:color .12s; cursor:pointer; border:none; background:none; }
-    .bnav-item.active { color:var(--accent-dk); }
-    .bnav-item span.icon { font-size:1.1rem; line-height:1; }
   </style>
 </head>
 <body>
@@ -288,21 +277,6 @@
   </main>
 </div>
 </div>
-
-<!-- ════ BOTTOM NAV (mobile) ════ -->
-<nav id="bottom-nav">
-  {% set bnav = [('/mentions', '◎', 'Mentions'),('/mentions?view=critical', '⚡', 'Critical'),('/radar', '◉', 'Radar'),('/dashboard', '▦', 'Dashboard'),('/settings', '⚙', 'Settings')] %}
-  {% for href, icon, label in bnav %}
-  {% set bactive = (request.path in ('/','/mentions') and not request.args.get('view') and label == 'Mentions') or
-                   (request.path == '/mentions' and request.args.get('view') == 'critical' and label == 'Critical') or
-                   (request.path == '/radar' and label == 'Radar') or
-                   (request.path == '/dashboard' and label == 'Dashboard') or
-                   (request.path == '/settings' and label == 'Settings') %}
-  <a href="{{ href }}" class="bnav-item {{ 'active' if bactive else '' }}">
-    <span class="icon">{{ icon }}</span>{{ label }}
-  </a>
-  {% endfor %}
-</nav>
 
 <!-- Scan bar -->
 <div id="scan-bar"><div id="scan-bar-fill"></div></div>
