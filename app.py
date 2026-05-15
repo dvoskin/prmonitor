@@ -14,7 +14,7 @@ load_dotenv()
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from db import init_db, seed_db, get_db
-from ranker import calculate_score, risk_color, sentiment_color
+from ranker import calculate_score, risk_color, sentiment_color, NARRATIVE_LABELS
 from ai_analysis import analyze_mention
 from scanner import run_scan
 
@@ -54,12 +54,20 @@ def get_stats():
         legal     = conn.execute("SELECT COUNT(*) FROM mentions WHERE needs_legal_review=1 AND status != 'resolved'").fetchone()[0]
         unread    = conn.execute("SELECT COUNT(*) FROM alerts WHERE read=0").fetchone()[0]
         last_scan = conn.execute("SELECT scanned_at, status FROM scan_logs ORDER BY scanned_at DESC LIMIT 1").fetchone()
+        public_response = conn.execute(
+            "SELECT COUNT(*) FROM mentions WHERE public_response=1 AND status NOT IN ('resolved','archived')"
+        ).fetchone()[0]
+        outreach = conn.execute(
+            "SELECT COUNT(*) FROM mentions WHERE patient_outreach_needed=1 AND status NOT IN ('resolved','archived')"
+        ).fetchone()[0]
     return {
         "total": total, "new": new_count, "negative": negative,
         "critical": critical, "opportunities": opps, "legal_queue": legal,
         "unread_alerts": unread,
         "last_scan": last_scan["scanned_at"] if last_scan else None,
         "last_scan_status": last_scan["status"] if last_scan else None,
+        "public_response": public_response,
+        "outreach": outreach,
     }
 
 
@@ -69,11 +77,13 @@ def get_stats():
 def dashboard():
     stats = get_stats()
     with get_db() as conn:
+        # Fallback highest-impact list (shown when no priority queues have items)
         mentions = rows_to_list(conn.execute("""
             SELECT id, title, platform, source_name, sentiment, risk_level,
                    impact_score, status, discovered_at, is_opportunity, is_threat,
-                   notify_leadership, needs_legal_review
+                   notify_leadership, needs_legal_review, narrative_type
             FROM mentions
+            WHERE status NOT IN ('archived')
             ORDER BY impact_score DESC, discovered_at DESC
             LIMIT 8
         """).fetchall())
@@ -85,11 +95,60 @@ def dashboard():
             ORDER BY a.created_at DESC LIMIT 6
         """).fetchall())
 
+        # Critical items — requires immediate attention
+        critical_items = rows_to_list(conn.execute("""
+            SELECT id, title, platform, source_name, sentiment, risk_level,
+                   impact_score, status, discovered_at, narrative_type
+            FROM mentions
+            WHERE risk_level='critical' AND status NOT IN ('resolved','archived')
+            ORDER BY impact_score DESC, discovered_at DESC
+            LIMIT 6
+        """).fetchall())
+
+        # Public response queue
+        response_queue = rows_to_list(conn.execute("""
+            SELECT id, title, platform, source_name, sentiment, risk_level,
+                   impact_score, status, discovered_at, narrative_type
+            FROM mentions
+            WHERE public_response=1 AND status NOT IN ('resolved','archived')
+            ORDER BY impact_score DESC, discovered_at DESC
+            LIMIT 5
+        """).fetchall())
+
+        # Patient outreach queue
+        outreach_queue = rows_to_list(conn.execute("""
+            SELECT id, title, platform, source_name, sentiment, risk_level,
+                   impact_score, status, discovered_at, narrative_type
+            FROM mentions
+            WHERE patient_outreach_needed=1 AND status NOT IN ('resolved','archived')
+            ORDER BY impact_score DESC, discovered_at DESC
+            LIMIT 5
+        """).fetchall())
+
+        # Narrative breakdown — complaint themes in the last 30 days
+        narrative_rows = conn.execute("""
+            SELECT narrative_type, COUNT(*) as cnt
+            FROM mentions
+            WHERE discovered_at >= datetime('now', '-30 days')
+              AND sentiment IN ('negative','neutral')
+              AND narrative_type IS NOT NULL
+            GROUP BY narrative_type
+            ORDER BY cnt DESC
+        """).fetchall()
+        narrative_counts = [(r["narrative_type"], r["cnt"]) for r in narrative_rows]
+
     for m in mentions:
         m["risk_color"]      = risk_color(m["risk_level"] or "")
         m["sentiment_color"] = sentiment_color(m["sentiment"] or "")
 
-    return render_template("dashboard.html", stats=stats, mentions=mentions, alerts=alerts)
+    return render_template("dashboard.html",
+        stats=stats, mentions=mentions, alerts=alerts,
+        critical_items=critical_items,
+        response_queue=response_queue,
+        outreach_queue=outreach_queue,
+        narrative_counts=narrative_counts,
+        narrative_labels=NARRATIVE_LABELS,
+    )
 
 
 @app.route("/mentions")
@@ -113,9 +172,11 @@ def mentions_page():
     elif view == "opportunities":where.append("is_opportunity=1")
     elif view == "new":          where.append("status='new'")
     elif view == "archived":     where.append("status='archived'")
+    elif view == "response":     where.append("public_response=1")
+    elif view == "outreach":     where.append("patient_outreach_needed=1")
 
     # Hide archived by default unless explicitly requested
-    if view != "archived" and not status:
+    if view not in ("archived", "response", "outreach") and not status:
         where.append("status != 'archived'")
 
     if sentiment: where.append("sentiment=?");  params.append(sentiment)

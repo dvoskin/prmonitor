@@ -1,111 +1,207 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — PR Impact Monitor{% endblock %}
+{% block title %}Command Center — Goals Reputation Intelligence{% endblock %}
 {% block content %}
 
-<!-- Page header -->
-<div style="margin-bottom:24px;">
-  <h1 style="font-size:1.45rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;">Reputation Dashboard</h1>
-  <p style="font-size:.84rem;color:var(--text-3);margin-top:3px;font-weight:500;">Goals Plastic Surgery · Real-time PR Intelligence</p>
+<div style="margin-bottom:20px;">
+  <h1 style="font-size:1.38rem;font-weight:800;color:var(--text-1);letter-spacing:-.02em;">Reputation Command Center</h1>
+  <p style="font-size:.82rem;color:var(--text-3);margin-top:3px;font-weight:500;">Goals Plastic Surgery · Live Intelligence Feed</p>
 </div>
 
-<!-- ── Stat cards ── -->
-<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px;" id="stat-grid">
+<!-- ── Priority stat bar ── -->
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px;" id="stat-grid">
   {% for label, value, icon, bg, fg, bdr, href in [
-    ('Total',        stats.total,         '◎', '#eef2ff', '#2563eb', '#c7d5f9', '/mentions'),
-    ('New',          stats.new,           '●', '#fefce8', '#a16207', '#ecd970', '/mentions?view=new'),
-    ('Negative',     stats.negative,      '↘', '#fff1f2', '#be123c', '#fda4af', '/mentions?view=negative'),
-    ('Critical',     stats.critical,      '⚡', '#ffeaea', '#9b0000', '#f5a0a0', '/mentions?view=critical'),
-    ('Opportunity',  stats.opportunities, '◆', '#e6f9ee', '#14692a', '#a3d9b5', '/mentions?view=opportunities'),
-    ('Legal Queue',  stats.legal_queue,   '⚖', '#f3eeff', '#5b21b6', '#c4b5fd', '/mentions?view=legal'),
+    ('Critical',      stats.critical,      '⚡', '#ffeaea', '#9b0000', '#f5a0a0', '/mentions?view=critical'),
+    ('Needs Response',stats.public_response,'💬', '#fff1f2', '#be123c', '#fda4af', '/mentions?view=response'),
+    ('Patient Outreach',stats.outreach,    '🤝', '#fff8eb', '#92400e', '#fcd34d', '/mentions?view=outreach'),
+    ('Legal Review',  stats.legal_queue,   '⚖',  '#f3eeff', '#5b21b6', '#c4b5fd', '/mentions?view=legal'),
+    ('New',           stats.new,           '●',  '#fefce8', '#a16207', '#ecd970', '/mentions?view=new'),
+    ('Opportunities', stats.opportunities, '⭐', '#e6f9ee', '#14692a', '#a3d9b5', '/mentions?view=opportunities'),
   ] %}
-  <a href="{{ href }}" style="text-decoration:none;display:block;">
-    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s,border-color .15s;height:100%;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)';this.style.borderColor='var(--border-strong)'" onmouseout="this.style.boxShadow='';this.style.borderColor='var(--border)'">
-      <div style="width:36px;height:36px;border-radius:9px;background:{{ bg }};border:1.5px solid {{ bdr }};display:flex;align-items:center;justify-content:center;font-size:1rem;color:{{ fg }};">{{ icon }}</div>
-      <div>
-        <div style="font-size:2rem;font-weight:800;color:{{ fg }};line-height:1;font-variant-numeric:tabular-nums;">{{ value }}</div>
-        <div style="font-size:.72rem;color:var(--text-3);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">{{ label }}</div>
+  <a href="{{ href }}" style="text-decoration:none;">
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;transition:box-shadow .15s,border-color .15s;" onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.09)';this.style.borderColor='{{ bdr }}'" onmouseout="this.style.boxShadow='';this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="width:30px;height:30px;border-radius:8px;background:{{ bg }};border:1.5px solid {{ bdr }};display:flex;align-items:center;justify-content:center;font-size:.85rem;">{{ icon }}</span>
+        <span style="font-size:1.75rem;font-weight:800;color:{{ fg }};line-height:1;font-variant-numeric:tabular-nums;">{{ value or 0 }}</span>
       </div>
+      <div style="font-size:.67rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.07em;">{{ label }}</div>
     </div>
   </a>
   {% endfor %}
 </div>
 
-<!-- ── Two column ── -->
-<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;" id="dash-grid">
+<!-- ── Main grid ── -->
+<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;" id="dash-grid">
 
-  <!-- Highest Impact -->
-  <div class="card" style="overflow:hidden;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1.5px solid var(--border);background:#fafbfc;">
-      <div>
-        <div style="font-size:.92rem;font-weight:700;color:var(--text-1);">Highest Impact Mentions</div>
-        <div style="font-size:.73rem;color:var(--text-3);margin-top:2px;font-weight:500;">Ranked by PR Impact Score</div>
-      </div>
-      <a href="/mentions" style="font-size:.78rem;color:var(--accent-dk);font-weight:700;text-decoration:none;background:var(--accent-bg);padding:5px 12px;border-radius:7px;border:1px solid #e8c87a;" onmouseover="this.style.background='#f5e8c8'" onmouseout="this.style.background='var(--accent-bg)'">View all →</a>
-    </div>
-    {% for m in mentions %}
-    {% set rl = m.risk_level or 'low' %}
-    <div onclick="window.location='/mentions/{{ m.id }}'" style="display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid #f3f5f8;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
-      <div class="score-box score-{{ rl }}">{{ m.impact_score or '—' }}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:.84rem;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
-        <div style="font-size:.73rem;color:var(--text-3);margin-top:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.platform or m.source_name }}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:.76rem;font-weight:700;color:{{ m.sentiment_color }};text-transform:capitalize;">{{ m.sentiment or '—' }}</div>
-        <div style="font-size:.68rem;color:var(--text-4);margin-top:2px;font-weight:500;">{{ m.discovered_at[:10] if m.discovered_at else '' }}</div>
-      </div>
-    </div>
-    {% else %}
-    <div style="padding:56px;text-align:center;">
-      <div style="font-size:2.2rem;margin-bottom:10px;opacity:.5;">🔎</div>
-      <div style="font-size:.9rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">No mentions yet</div>
-      <div style="font-size:.82rem;color:var(--text-3);">Click <strong style="color:var(--accent-dk);">Scan Now</strong> in the top bar to start.</div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <!-- Right: Alerts + Legend -->
+  <!-- Left column -->
   <div style="display:flex;flex-direction:column;gap:16px;">
 
-    <!-- Alerts -->
+    <!-- Requires Immediate Attention -->
+    {% if critical_items %}
+    <div class="card" style="overflow:hidden;border:1.5px solid #f5a0a0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff5f5;border-bottom:1.5px solid #fecaca;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1rem;">🚨</span>
+          <div>
+            <div style="font-size:.88rem;font-weight:800;color:#9b0000;">Requires Immediate Attention</div>
+            <div style="font-size:.72rem;color:#b91c1c;margin-top:1px;font-weight:500;">{{ critical_items|length }} critical issue{{ 's' if critical_items|length != 1 else '' }} — action required today</div>
+          </div>
+        </div>
+        <a href="/mentions?view=critical" style="font-size:.75rem;color:#9b0000;font-weight:700;text-decoration:none;background:#ffeaea;padding:4px 11px;border-radius:6px;border:1px solid #f5a0a0;">View all →</a>
+      </div>
+      {% for m in critical_items %}
+      <div onclick="window.location='/mentions/{{ m.id }}'" style="display:flex;align-items:flex-start;gap:12px;padding:12px 18px;border-bottom:1px solid #fef2f2;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background=''">
+        <div class="score-box score-critical" style="flex-shrink:0;">{{ m.impact_score }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.83rem;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+            {% if m.narrative_type and m.narrative_type != 'general_mention' %}
+            <span style="font-size:.68rem;background:#ffeaea;color:#9b0000;border:1px solid #f5a0a0;border-radius:5px;padding:2px 7px;font-weight:700;">{{ narrative_labels.get(m.narrative_type, m.narrative_type) }}</span>
+            {% endif %}
+            <span style="font-size:.7rem;color:var(--text-3);font-weight:500;">{{ m.platform or m.source_name }}</span>
+          </div>
+        </div>
+        <div style="font-size:.69rem;color:var(--text-4);white-space:nowrap;flex-shrink:0;padding-top:2px;">{{ m.discovered_at[:10] if m.discovered_at else '' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Response Queue -->
+    {% if response_queue %}
     <div class="card" style="overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1.5px solid var(--border);background:#fafbfc;">
-        <div style="font-size:.92rem;font-weight:700;color:var(--text-1);">Active Alerts</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fafbfc;border-bottom:1.5px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1rem;">💬</span>
+          <div>
+            <div style="font-size:.88rem;font-weight:700;color:var(--text-1);">Pending Response</div>
+            <div style="font-size:.72rem;color:var(--text-3);margin-top:1px;font-weight:500;">Posts/reviews awaiting a public reply</div>
+          </div>
+        </div>
+        <a href="/mentions?view=response" style="font-size:.75rem;color:var(--accent-dk);font-weight:700;text-decoration:none;background:var(--accent-bg);padding:4px 11px;border-radius:6px;border:1px solid #e8c87a;">View all →</a>
+      </div>
+      {% for m in response_queue %}
+      <div onclick="window.location='/mentions/{{ m.id }}'" style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid #f3f5f8;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
+        <div class="score-box score-{{ m.risk_level or 'low' }}" style="flex-shrink:0;">{{ m.impact_score }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.82rem;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+          <div style="font-size:.71rem;color:var(--text-3);margin-top:2px;">{{ m.platform or m.source_name }}{% if m.narrative_type and m.narrative_type != 'general_mention' %} · <span style="color:#be123c;font-weight:600;">{{ narrative_labels.get(m.narrative_type, '') }}</span>{% endif %}</div>
+        </div>
+        <span style="font-size:.7rem;font-weight:700;color:#9b0000;background:#ffeaea;border:1px solid #f5a0a0;border-radius:5px;padding:2px 8px;flex-shrink:0;">Reply needed</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Patient Outreach Queue -->
+    {% if outreach_queue %}
+    <div class="card" style="overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fafbfc;border-bottom:1.5px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1rem;">🤝</span>
+          <div>
+            <div style="font-size:.88rem;font-weight:700;color:var(--text-1);">Patient Outreach Needed</div>
+            <div style="font-size:.72rem;color:var(--text-3);margin-top:1px;font-weight:500;">Patients showing signs of distress, abandonment, or unresolved concerns</div>
+          </div>
+        </div>
+        <a href="/mentions?view=outreach" style="font-size:.75rem;color:var(--accent-dk);font-weight:700;text-decoration:none;background:var(--accent-bg);padding:4px 11px;border-radius:6px;border:1px solid #e8c87a;">View all →</a>
+      </div>
+      {% for m in outreach_queue %}
+      <div onclick="window.location='/mentions/{{ m.id }}'" style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid #f3f5f8;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
+        <div class="score-box score-{{ m.risk_level or 'low' }}" style="flex-shrink:0;">{{ m.impact_score }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.82rem;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+          <div style="font-size:.71rem;color:var(--text-3);margin-top:2px;">{{ m.platform or m.source_name }} · <span style="color:#92400e;font-weight:600;">{{ narrative_labels.get(m.narrative_type, '') }}</span></div>
+        </div>
+        <span style="font-size:.7rem;font-weight:700;color:#92400e;background:#fff8eb;border:1px solid #fcd34d;border-radius:5px;padding:2px 8px;flex-shrink:0;">Reach out</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Top mentions fallback when no priority queues -->
+    {% if not critical_items and not response_queue and not outreach_queue %}
+    <div class="card" style="overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fafbfc;border-bottom:1.5px solid var(--border);">
+        <div style="font-size:.88rem;font-weight:700;color:var(--text-1);">Highest Impact Mentions</div>
+        <a href="/mentions" style="font-size:.75rem;color:var(--accent-dk);font-weight:700;text-decoration:none;background:var(--accent-bg);padding:4px 11px;border-radius:6px;border:1px solid #e8c87a;">View all →</a>
+      </div>
+      {% for m in mentions %}
+      <div onclick="window.location='/mentions/{{ m.id }}'" style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid #f3f5f8;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
+        <div class="score-box score-{{ m.risk_level or 'low' }}">{{ m.impact_score or '—' }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.83rem;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ m.title }}</div>
+          <div style="font-size:.72rem;color:var(--text-3);margin-top:2px;">{{ m.platform or m.source_name }}</div>
+        </div>
+        <span style="font-size:.76rem;font-weight:700;color:{{ m.sentiment_color }};text-transform:capitalize;">{{ m.sentiment or '—' }}</span>
+      </div>
+      {% else %}
+      <div style="padding:56px;text-align:center;">
+        <div style="font-size:2.2rem;margin-bottom:10px;opacity:.5;">🔎</div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">No mentions yet</div>
+        <div style="font-size:.82rem;color:var(--text-3);">Click <strong style="color:var(--accent-dk);">Scan Now</strong> to start monitoring.</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- Active Alerts -->
+    <div class="card" style="overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fafbfc;border-bottom:1.5px solid var(--border);">
+        <div style="font-size:.86rem;font-weight:700;color:var(--text-1);">Active Alerts</div>
         {% if alerts %}
-        <span style="background:#ffeaea;color:#9b0000;border:1px solid #f5a0a0;font-size:.65rem;border-radius:6px;padding:2px 8px;font-weight:800;">{{ alerts|length }}</span>
+        <span style="background:#ffeaea;color:#9b0000;border:1px solid #f5a0a0;font-size:.63rem;border-radius:5px;padding:2px 8px;font-weight:800;">{{ alerts|length }}</span>
         {% endif %}
       </div>
       {% for a in alerts %}
-      {% set dot = {'critical':'#9b0000','high':'#9a2e00','warning':'#8f5e00','info':'#1a3a9f'} %}
-      <a href="/mentions/{{ a.mention_id_ref or '' }}" style="display:flex;gap:10px;align-items:flex-start;padding:13px 16px;border-bottom:1px solid #f3f5f8;text-decoration:none;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
-        <span style="width:8px;height:8px;border-radius:50%;background:{{ dot.get(a.severity,'#9ba5b5') }};flex-shrink:0;margin-top:4px;"></span>
+      <a href="/mentions/{{ a.mention_id_ref or '' }}" style="display:flex;gap:9px;align-items:flex-start;padding:11px 14px;border-bottom:1px solid #f3f5f8;text-decoration:none;transition:background .1s;" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background=''">
+        <span style="width:7px;height:7px;border-radius:50%;background:{{ {'critical':'#9b0000','high':'#9a2e00','warning':'#8f5e00','info':'#1a3a9f'}.get(a.severity,'#9ba5b5') }};flex-shrink:0;margin-top:4px;"></span>
         <div style="min-width:0;">
-          <div style="font-size:.79rem;font-weight:700;color:var(--text-1);line-height:1.4;">{{ a.title }}</div>
-          <div style="font-size:.72rem;color:var(--text-3);margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ a.body or '' }}</div>
+          <div style="font-size:.77rem;font-weight:700;color:var(--text-1);line-height:1.4;">{{ a.title }}</div>
+          <div style="font-size:.7rem;color:var(--text-3);margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ a.body or '' }}</div>
         </div>
       </a>
       {% else %}
-      <div style="padding:36px 16px;text-align:center;">
-        <div style="font-size:1.6rem;margin-bottom:6px;">✅</div>
-        <div style="font-size:.82rem;color:var(--text-3);font-weight:500;">No active alerts</div>
+      <div style="padding:32px 14px;text-align:center;">
+        <div style="font-size:1.4rem;margin-bottom:5px;">✅</div>
+        <div style="font-size:.79rem;color:var(--text-3);font-weight:500;">No active alerts</div>
       </div>
       {% endfor %}
     </div>
 
-    <!-- Score legend -->
-    <div class="card" style="padding:18px;">
-      <div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:13px;">Impact Score Guide</div>
+    <!-- Narrative Breakdown -->
+    {% if narrative_counts %}
+    <div class="card" style="padding:16px;">
+      <div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:12px;">Complaint Themes · Last 30 Days</div>
+      {% for nt, count in narrative_counts %}
+      {% if count > 0 and nt not in ('general_mention', 'positive_review') %}
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f5f8;">
+        <span style="font-size:.72rem;font-weight:700;color:var(--text-2);flex:1;">{{ narrative_labels.get(nt, nt) }}</span>
+        <span style="font-size:.75rem;font-weight:800;color:#9b0000;background:#ffeaea;border:1px solid #f5a0a0;border-radius:5px;padding:1px 7px;min-width:24px;text-align:center;">{{ count }}</span>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Risk guide -->
+    <div class="card" style="padding:16px;">
+      <div style="font-size:.7rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:11px;">Impact Score</div>
       {% for sr, lvl, bg, fg, bdr, desc in [
-        ('0–24',   'Low Risk',  '#e6f9ee','#14692a','#a3d9b5','Monitor — no action'),
-        ('25–49',  'Moderate',  '#fef8e7','#8f5e00','#f0cc72','Assign to PR team'),
-        ('50–74',  'High Risk', '#fff1eb','#9a2e00','#f5ab82','Escalate — respond'),
-        ('75–100', 'Critical',  '#ffeaea','#9b0000','#f5a0a0','Immediate action'),
+        ('75–100','Critical',  '#ffeaea','#9b0000','#f5a0a0','Escalate now'),
+        ('50–74', 'High Risk', '#fff1eb','#9a2e00','#f5ab82','Respond urgently'),
+        ('25–49', 'Moderate',  '#fef8e7','#8f5e00','#f0cc72','Assign to team'),
+        ('0–24',  'Low',       '#e6f9ee','#14692a','#a3d9b5','Monitor'),
       ] %}
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f5f8;">
-        <div style="width:42px;text-align:center;font-size:.72rem;font-weight:800;color:{{ fg }};background:{{ bg }};border:1.5px solid {{ bdr }};border-radius:6px;padding:3px 0;flex-shrink:0;">{{ sr }}</div>
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid #f3f5f8;">
+        <div style="width:40px;text-align:center;font-size:.69rem;font-weight:800;color:{{ fg }};background:{{ bg }};border:1.5px solid {{ bdr }};border-radius:5px;padding:2px 0;flex-shrink:0;">{{ sr }}</div>
         <div>
-          <div style="font-size:.79rem;font-weight:700;color:{{ fg }};">{{ lvl }}</div>
-          <div style="font-size:.71rem;color:var(--text-3);font-weight:500;">{{ desc }}</div>
+          <div style="font-size:.77rem;font-weight:700;color:{{ fg }};">{{ lvl }}</div>
+          <div style="font-size:.68rem;color:var(--text-3);">{{ desc }}</div>
         </div>
       </div>
       {% endfor %}
@@ -117,6 +213,5 @@
 <style>
   @media (max-width: 900px) { #dash-grid { grid-template-columns:1fr !important; } }
   @media (max-width: 600px) { #stat-grid { grid-template-columns:repeat(2,1fr) !important; } }
-  @media (max-width: 380px) { #stat-grid { grid-template-columns:1fr 1fr !important; gap:10px !important; } }
 </style>
 {% endblock %}

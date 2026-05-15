@@ -43,6 +43,9 @@ def init_db():
             related_location  TEXT,
             related_procedure TEXT,
             screenshot_url    TEXT,
+            narrative_type    TEXT DEFAULT 'general_mention',
+            patient_outreach_needed INTEGER DEFAULT 0,
+            response_draft    TEXT,
             status            TEXT DEFAULT 'new',
             assigned_to       TEXT,
             sentiment         TEXT,
@@ -123,6 +126,19 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_mentions_risk ON mentions(risk_level);
         CREATE INDEX IF NOT EXISTS idx_alerts_read ON alerts(read);
         """)
+
+    # ── Schema migrations (safe to run on existing DBs) ──────────────────────
+    with get_db() as conn:
+        for col, definition in [
+            ("narrative_type",         "TEXT DEFAULT 'general_mention'"),
+            ("patient_outreach_needed","INTEGER DEFAULT 0"),
+            ("response_draft",         "TEXT"),
+        ]:
+            try:
+                conn.execute(f"ALTER TABLE mentions ADD COLUMN {col} {definition}")
+                print(f"✅ Migration: added column {col}")
+            except Exception:
+                pass  # column already exists
 
     # ── Data migrations ───────────────────────────────────────────────────────
     # Fix Google News RSS redirect URLs → browser-friendly /articles/ format

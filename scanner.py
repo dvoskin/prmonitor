@@ -277,6 +277,7 @@ def run_scan() -> dict:
                     related_surgeon=raw.get("related_surgeon"),
                     related_location=raw.get("related_location"),
                     related_procedure=raw.get("related_procedure"),
+                    narrative_type=ai.get("narrative_type"),
                 )
 
                 mid = str(uuid.uuid4())
@@ -287,16 +288,20 @@ def run_scan() -> dict:
                       (id, url, title, snippet, author, source_name, platform,
                        published_at, engagement_count, engagement_label,
                        sentiment, risk_level, impact_score,
+                       narrative_type, patient_outreach_needed, response_draft,
                        ai_summary, why_it_matters, recommended_action,
                        notify_leadership, needs_legal_review, public_response,
                        is_opportunity, is_threat, raw_score_factors, status)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     mid, url, title, snippet,
                     raw.get("author"), raw["source_name"], raw.get("platform"),
                     raw.get("published_at"),
                     raw.get("engagement_count"), raw.get("engagement_label"),
                     ai["sentiment"], score["risk_level"], score["impact_score"],
+                    ai.get("narrative_type", "general_mention"),
+                    int(ai.get("patient_outreach_needed", False)),
+                    ai.get("response_draft", ""),
                     ai["ai_summary"], ai["why_it_matters"], ai["recommended_action"],
                     int(score["notify_leadership"]), int(score["needs_legal_review"]),
                     int(ai.get("public_response", False)),
