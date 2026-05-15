@@ -50,8 +50,10 @@ def get_stats():
         new_count = conn.execute("SELECT COUNT(*) FROM mentions WHERE status='new'").fetchone()[0]
         negative  = conn.execute("SELECT COUNT(*) FROM mentions WHERE sentiment='negative'").fetchone()[0]
         critical  = conn.execute("SELECT COUNT(*) FROM mentions WHERE risk_level='critical'").fetchone()[0]
+        positive  = conn.execute("SELECT COUNT(*) FROM mentions WHERE sentiment='positive'").fetchone()[0]
         opps      = conn.execute("SELECT COUNT(*) FROM mentions WHERE is_opportunity=1").fetchone()[0]
         legal     = conn.execute("SELECT COUNT(*) FROM mentions WHERE needs_legal_review=1 AND status != 'resolved'").fetchone()[0]
+        archived  = conn.execute("SELECT COUNT(*) FROM mentions WHERE status='archived'").fetchone()[0]
         unread    = conn.execute("SELECT COUNT(*) FROM alerts WHERE read=0").fetchone()[0]
         last_scan = conn.execute("SELECT scanned_at, status FROM scan_logs ORDER BY scanned_at DESC LIMIT 1").fetchone()
         public_response = conn.execute(
@@ -62,7 +64,8 @@ def get_stats():
         ).fetchone()[0]
     return {
         "total": total, "new": new_count, "negative": negative,
-        "critical": critical, "opportunities": opps, "legal_queue": legal,
+        "positive": positive, "critical": critical,
+        "opportunities": opps, "legal_queue": legal, "archived": archived,
         "unread_alerts": unread,
         "last_scan": last_scan["scanned_at"] if last_scan else None,
         "last_scan_status": last_scan["status"] if last_scan else None,
@@ -419,6 +422,42 @@ def api_scan_status():
         state = dict(_scan_state)
     state["stats"] = get_stats()
     return jsonify(state)
+
+
+@app.route("/api/mentions/bulk-classify", methods=["POST"])
+def bulk_classify():
+    """Classify a batch of mentions into a label (critical/negative/positive/legal/opportunity/archived)."""
+    body  = request.get_json(force=True) or {}
+    ids   = body.get("ids", [])
+    label = body.get("label", "").lower()
+    if not ids or not label:
+        return jsonify({"error": "ids and label required"}), 400
+
+    # Map label → field updates
+    CLASSIFY_MAP = {
+        "critical":    {"risk_level": "critical"},
+        "negative":    {"sentiment": "negative"},
+        "positive":    {"sentiment": "positive"},
+        "legal":       {"needs_legal_review": 1},
+        "opportunity": {"is_opportunity": 1},
+        "archived":    {"status": "archived"},
+    }
+    updates = CLASSIFY_MAP.get(label)
+    if not updates:
+        return jsonify({"error": f"Unknown label '{label}'"}), 400
+
+    set_clause = ", ".join(f"{k}=?" for k in updates)
+    values     = list(updates.values())
+    placeholders = ",".join("?" * len(ids))
+
+    with get_db() as conn:
+        conn.execute(
+            f"UPDATE mentions SET {set_clause}, updated_at=datetime('now') WHERE id IN ({placeholders})",
+            values + ids,
+        )
+        conn.commit()
+
+    return jsonify({"ok": True, "updated": len(ids), "label": label})
 
 
 @app.route("/api/mentions/bulk-status", methods=["POST"])
