@@ -486,7 +486,7 @@
     const source = document.getElementById('f-source') ? document.getElementById('f-source').value : '';
     const status = document.getElementById('f-status') ? document.getElementById('f-status').value : '';
     if (s) params.set('search', s);
-    if (sort && sort !== 'score') params.set('sort', sort);
+    if (sort) params.set('sort', sort);
     if (sentiment) params.set('sentiment', sentiment);
     if (risk) params.set('risk', risk);
     if (source) params.set('source', source);

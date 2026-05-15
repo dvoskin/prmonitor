@@ -175,8 +175,9 @@ Content: {snippet or "(no additional content)"}
 
 Return ONLY valid JSON. No markdown. No extra text."""
 
+        model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
         response = client.messages.create(
-            model="claude-haiku-4-5",
+            model=model,
             max_tokens=600,
             messages=[
                 {"role": "user",      "content": prompt},
