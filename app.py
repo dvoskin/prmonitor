@@ -197,6 +197,11 @@ def api_radar():
     return jsonify(nodes)
 
 @app.route("/")
+def index():
+    return redirect("/mentions")
+
+
+@app.route("/dashboard")
 def dashboard():
     stats = get_stats()
     with get_db() as conn:

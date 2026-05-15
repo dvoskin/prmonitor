@@ -2,6 +2,20 @@
 {% block title %}Mentions — PR Impact Monitor{% endblock %}
 {% block content %}
 
+<!-- Alert Banner -->
+{% if stats and (stats.critical > 0 or stats.unread_alerts > 0) %}
+<div id="alert-banner" style="display:flex;align-items:center;gap:10px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:10px;padding:9px 14px;margin-bottom:12px;">
+  <span style="font-size:.92rem;flex-shrink:0;">🚨</span>
+  <div style="flex:1;font-size:.76rem;font-weight:600;color:#9b1c1c;line-height:1.4;">
+    {% if stats.critical > 0 %}<strong>{{ stats.critical }} critical</strong> mention{{ 's' if stats.critical != 1 }} need immediate attention{% endif %}
+    {% if stats.critical > 0 and stats.unread_alerts > 0 %} &nbsp;·&nbsp; {% endif %}
+    {% if stats.unread_alerts > 0 %}<strong>{{ stats.unread_alerts }}</strong> unread alert{{ 's' if stats.unread_alerts != 1 }}{% endif %}
+  </div>
+  {% if stats.critical > 0 %}<a href="/mentions?view=critical" style="font-size:.72rem;color:#c0000a;font-weight:700;text-decoration:none;padding:3px 9px;background:rgba(192,0,10,.08);border-radius:6px;border:1px solid rgba(192,0,10,.2);white-space:nowrap;flex-shrink:0;">View Critical →</a>{% endif %}
+  <button onclick="this.closest('#alert-banner').style.display='none'" style="width:20px;height:20px;border:none;background:none;cursor:pointer;color:#9ca3af;font-size:.85rem;flex-shrink:0;padding:0;line-height:1;">✕</button>
+</div>
+{% endif %}
+
 <!-- Header -->
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
   <div>
@@ -13,9 +27,21 @@
   <button onclick="document.getElementById('add-modal').style.display='flex'" class="btn-primary" style="height:34px;padding:0 14px;font-size:.78rem;">＋ Add Mention</button>
 </div>
 
-<!-- View pill tabs -->
+<!-- View pill tabs — also serve as drag-to-classify drop zones -->
+<style>
+  #view-tabs::-webkit-scrollbar{display:none;}
+  .label-tab { transition:transform .15s, box-shadow .15s, background .12s, border-color .12s; }
+  body.is-dragging .label-tab[data-label]:not([data-label=""]) {
+    transform:scale(1.06);
+    box-shadow:0 4px 16px rgba(0,0,0,.13);
+    cursor:copy;
+  }
+  .label-tab.drag-over {
+    transform:scale(1.12) !important;
+    box-shadow:0 6px 22px rgba(0,0,0,.18) !important;
+  }
+</style>
 <div style="display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px;" id="view-tabs">
-  <style>#view-tabs::-webkit-scrollbar{display:none;}</style>
   {% for v_key, v_label, v_count, v_color in [
     ('',             'All',      stats.total,          '#6b7280'),
     ('critical',     'Critical', stats.critical,       '#c0000a'),
@@ -26,17 +52,26 @@
     ('archived',     'Archived', stats.archived,       '#9ba5b5'),
   ] %}
   {% set is_active = (view == v_key) %}
-  <a href="/mentions{% if v_key %}?view={{ v_key }}{% endif %}" style="
-    display:inline-flex;align-items:center;gap:4px;
-    padding:5px 11px;
-    font-size:.74rem;font-weight:{{ '700' if is_active else '500' }};
-    text-decoration:none;white-space:nowrap;flex-shrink:0;
-    border-radius:20px;
-    background:{{ v_color if is_active else 'var(--surface)' }};
-    color:{{ '#fff' if is_active else 'var(--text-2)' }};
-    border:1.5px solid {{ v_color if is_active else 'var(--border)' }};
-    transition:all .12s;
-  " onmouseover="if(this.dataset.active!='1'){this.style.borderColor='{{ v_color }}';this.style.color='{{ v_color }}'}" onmouseout="if(this.dataset.active!='1'){this.style.borderColor='var(--border)';this.style.color='var(--text-2)'}" data-active="{{ '1' if is_active else '0' }}">
+  {% set drop_label = 'opportunity' if v_key == 'opportunities' else v_key %}
+  <a href="/mentions{% if v_key %}?view={{ v_key }}{% endif %}"
+     class="label-tab"
+     data-label="{{ drop_label }}"
+     data-color="{{ v_color }}"
+     ondragover="onTabDragOver(event,'{{ drop_label }}','{{ v_color }}')"
+     ondragleave="onTabDragLeave(event)"
+     ondrop="onTabDrop(event,'{{ drop_label }}')"
+     style="
+       display:inline-flex;align-items:center;gap:4px;
+       padding:5px 11px;
+       font-size:.74rem;font-weight:{{ '700' if is_active else '500' }};
+       text-decoration:none;white-space:nowrap;flex-shrink:0;
+       border-radius:20px;
+       background:{{ v_color if is_active else 'var(--surface)' }};
+       color:{{ '#fff' if is_active else 'var(--text-2)' }};
+       border:1.5px solid {{ v_color if is_active else 'var(--border)' }};
+     " data-active="{{ '1' if is_active else '0' }}"
+     onmouseover="if(this.dataset.active!='1'){this.style.borderColor='{{ v_color }}';this.style.color='{{ v_color }}'}"
+     onmouseout="if(this.dataset.active!='1'){this.style.borderColor='var(--border)';this.style.color='var(--text-2)'}">
     {{ v_label }}
     {% if v_count %}
     <span style="font-size:.62rem;background:{{ 'rgba(255,255,255,.28)' if is_active else '#f3f4f6' }};color:{{ 'inherit' if is_active else 'var(--text-3)' }};border-radius:20px;padding:0px 5px;font-weight:700;">{{ v_count }}</span>
@@ -129,7 +164,11 @@
       <tbody>
         {% for m in mentions %}
         {% set rl = m.risk_level or 'low' %}
-        <tr class="hoverable mention-row" id="row-{{ m.id }}" onclick="rowClick(event, '{{ m.id }}')" style="height:38px;">
+        <tr class="hoverable mention-row" id="row-{{ m.id }}"
+            draggable="true"
+            ondragstart="onRowDragStart(event,'{{ m.id }}')"
+            ondragend="onRowDragEnd(event)"
+            onclick="rowClick(event, '{{ m.id }}')" style="height:38px;cursor:grab;">
           <td style="padding:0 6px 0 14px;border-bottom:1px solid #f3f5f8;" onclick="event.stopPropagation()">
             <input type="checkbox" class="mention-cb" value="{{ m.id }}" onchange="onCheckChange()" style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent);">
           </td>
@@ -228,24 +267,27 @@
 </div>
 
 <!-- ══ Floating Bulk Action Bar ══ -->
-<div id="bulk-bar" style="display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:400;background:var(--text-1);color:#fff;border-radius:12px;padding:9px 14px;align-items:center;gap:8px;box-shadow:0 8px 28px rgba(0,0,0,.28);white-space:nowrap;">
-  <span id="bulk-count" style="font-size:.74rem;font-weight:700;margin-right:2px;">0 selected</span>
-
-  <!-- Classify dropdown -->
-  <div style="position:relative;display:inline-block;">
-    <button id="bulk-classify-btn" onclick="toggleBulkClassify()" style="background:#374151;color:#e5e7eb;border:1px solid #4b5563;border-radius:7px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;">
-      ⊞ Label <span style="font-size:.6rem;opacity:.7;">▾</span>
-    </button>
-    <div id="bulk-classify-menu" style="display:none;position:absolute;bottom:34px;left:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:5px;min-width:130px;z-index:500;">
-      {% for lbl, lcolor in [('Critical','#c0000a'),('Negative','#e53935'),('Positive','#16a34a'),('Legal','#7c3aed'),('Opportunity','#d97706'),('Archived','#6b7280')] %}
-      <button onclick="bulkClassify('{{ lbl.lower() }}')" style="display:block;width:100%;text-align:left;padding:5px 9px;font-size:.73rem;font-weight:600;color:{{ lcolor }};background:transparent;border:none;border-radius:6px;cursor:pointer;transition:background .1s;" onmouseover="this.style.background='{{ lcolor }}18'" onmouseout="this.style.background='transparent'">● {{ lbl }}</button>
-      {% endfor %}
-    </div>
+<div id="bulk-bar" style="display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:400;background:#111827;color:#fff;border-radius:14px;padding:10px 14px;flex-direction:column;gap:8px;box-shadow:0 12px 36px rgba(0,0,0,.35);min-width:340px;max-width:92vw;">
+  <!-- Row 1: count + actions -->
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span id="bulk-count" style="font-size:.74rem;font-weight:700;color:#e5e7eb;flex:1;">0 selected</span>
+    <button onclick="bulkSetStatus('reviewing')" style="background:#1e40af;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:.71rem;font-weight:700;cursor:pointer;white-space:nowrap;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">✓ Reviewed</button>
+    <button onclick="bulkSetStatus('resolved')" style="background:#166534;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:.71rem;font-weight:700;cursor:pointer;white-space:nowrap;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">✓ Resolve</button>
+    <button onclick="clearSelection()" style="background:transparent;color:#6b7280;border:none;padding:4px;font-size:.9rem;cursor:pointer;line-height:1;">✕</button>
   </div>
-
-  <button onclick="bulkSetStatus('reviewing')" style="background:#2563eb;color:#fff;border:none;border-radius:7px;padding:5px 11px;font-size:.72rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Reviewed</button>
-  <button onclick="bulkSetStatus('resolved')" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:5px 11px;font-size:.72rem;font-weight:700;cursor:pointer;transition:opacity .12s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Resolve</button>
-  <button onclick="clearSelection()" style="background:transparent;color:#9ca3af;border:none;padding:5px 2px;font-size:.8rem;cursor:pointer;margin-left:2px;">✕</button>
+  <!-- Row 2: label buttons -->
+  <div style="display:flex;gap:5px;flex-wrap:wrap;">
+    <span style="font-size:.63rem;color:#6b7280;font-weight:600;align-self:center;margin-right:2px;text-transform:uppercase;letter-spacing:.06em;">Label:</span>
+    {% for lbl, lcolor in [('Critical','#c0000a'),('Negative','#e53935'),('Positive','#16a34a'),('Legal','#7c3aed'),('Opp','#d97706'),('Archive','#6b7280')] %}
+    {% set lkey = 'opportunity' if lbl == 'Opp' else ('archived' if lbl == 'Archive' else lbl.lower()) %}
+    <button onclick="bulkClassify('{{ lkey }}')"
+      style="padding:4px 10px;font-size:.71rem;font-weight:700;border-radius:20px;border:1.5px solid {{ lcolor }}40;background:{{ lcolor }}18;color:{{ lcolor }};cursor:pointer;transition:all .12s;white-space:nowrap;"
+      onmouseover="this.style.background='{{ lcolor }}';this.style.color='#fff'"
+      onmouseout="this.style.background='{{ lcolor }}18';this.style.color='{{ lcolor }}'">
+      ● {{ lbl }}
+    </button>
+    {% endfor %}
+  </div>
 </div>
 
 <!-- ══ Add Mention Modal ══ -->
@@ -387,15 +429,15 @@
     }
   }
 
-  /* ── Classify (single row) ── */
+  /* ── Label colors ── */
   const LABEL_COLORS = {
     critical:'#c0000a', negative:'#e53935', positive:'#16a34a',
     legal:'#7c3aed', opportunity:'#d97706', archived:'#6b7280'
   };
 
+  /* ── Single-row classify (from ⊞ popover) ── */
   function toggleClassifyMenu(e, id) {
     e.stopPropagation();
-    // Close any open menus
     document.querySelectorAll('.classify-menu').forEach(m => {
       if (m.id !== 'cm-' + id) m.style.display = 'none';
     });
@@ -405,69 +447,105 @@
 
   document.addEventListener('click', () => {
     document.querySelectorAll('.classify-menu').forEach(m => m.style.display = 'none');
-    const bcm = document.getElementById('bulk-classify-menu');
-    if (bcm) bcm.style.display = 'none';
   });
+
+  async function applyClassify(ids, label) {
+    const r = await fetch('/api/mentions/bulk-classify', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ ids, label })
+    });
+    if (!r.ok) return false;
+    const col = LABEL_COLORS[label] || '#000';
+    ids.forEach(id => {
+      const row = document.getElementById('row-' + id);
+      if (!row) return;
+      if (label === 'archived') {
+        row.style.transition = 'opacity .35s, transform .35s';
+        row.style.opacity = '0'; row.style.transform = 'translateX(8px)';
+        setTimeout(() => row.remove(), 380);
+      } else {
+        row.style.transition = 'background .2s';
+        row.style.background = col + '1a';
+        setTimeout(() => { row.style.background = ''; row.style.transition = ''; }, 1100);
+      }
+    });
+    return true;
+  }
 
   async function classifyOne(id, label, btn) {
     document.getElementById('cm-' + id).style.display = 'none';
-    const r = await fetch('/api/mentions/bulk-classify', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ids:[id], label })
-    });
-    if (r.ok) {
-      const row = document.getElementById('row-' + id);
-      if (label === 'archived') {
-        row.style.transition = 'opacity .3s';
-        row.style.opacity = '0';
-        setTimeout(() => row.remove(), 300);
-      } else {
-        // Visual feedback: briefly tint the row
-        row.style.transition = 'background .15s';
-        row.style.background = (LABEL_COLORS[label] || '#000') + '12';
-        setTimeout(() => { row.style.background = ''; row.style.transition = ''; }, 900);
-        // Update status badge if relevant
-        if (label === 'archived') {
-          const badge = row.querySelector('.status-badge');
-          if (badge) { badge.textContent = 'Archived'; badge.className = 'badge badge-archived status-badge'; }
-        }
-      }
-    }
+    await applyClassify([id], label);
   }
 
-  /* ── Classify (bulk) ── */
-  function toggleBulkClassify() {
-    const m = document.getElementById('bulk-classify-menu');
-    m.style.display = m.style.display === 'none' ? 'block' : 'none';
-    event.stopPropagation();
-  }
-
+  /* ── Bulk classify (from bulk bar) ── */
   async function bulkClassify(label) {
-    document.getElementById('bulk-classify-menu').style.display = 'none';
     const ids = getChecked();
     if (!ids.length) return;
-    const r = await fetch('/api/mentions/bulk-classify', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ids, label })
+    if (await applyClassify(ids, label)) clearSelection();
+  }
+
+  /* ── Drag-and-drop rows to label tabs ── */
+  let _dragIds = [];
+
+  function onRowDragStart(e, id) {
+    const checked = getChecked();
+    _dragIds = checked.includes(id) ? checked : [id];
+    e.dataTransfer.setData('text/plain', _dragIds.join(','));
+    e.dataTransfer.effectAllowed = 'move';
+    // Style dragged rows
+    _dragIds.forEach(did => {
+      const row = document.getElementById('row-' + did);
+      if (row) { row.style.opacity = '.38'; row.style.transition = 'opacity .15s'; }
     });
-    if (r.ok) {
-      ids.forEach(id => {
-        const row = document.getElementById('row-' + id);
-        if (!row) return;
-        if (label === 'archived') {
-          row.style.transition = 'opacity .3s';
-          row.style.opacity = '0';
-          setTimeout(() => row.remove(), 300);
-        } else {
-          row.style.transition = 'background .15s';
-          row.style.background = (LABEL_COLORS[label] || '#000') + '12';
-          setTimeout(() => { row.style.background = ''; row.style.transition = ''; }, 900);
-        }
-      });
-      clearSelection();
+    document.body.classList.add('is-dragging');
+  }
+
+  function onRowDragEnd(e) {
+    _dragIds.forEach(did => {
+      const row = document.getElementById('row-' + did);
+      if (row) { row.style.opacity = ''; row.style.transition = ''; }
+    });
+    document.body.classList.remove('is-dragging');
+    document.querySelectorAll('.label-tab').forEach(t => t.classList.remove('drag-over'));
+    _dragIds = [];
+  }
+
+  function onTabDragOver(e, label, color) {
+    if (!label) return;       // "All" tab — not a drop target
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.label-tab').forEach(t => t.classList.remove('drag-over'));
+    e.currentTarget.classList.add('drag-over');
+    // Pulse the tab color
+    const el = e.currentTarget;
+    if (el.dataset.active !== '1') {
+      el.style.background = color;
+      el.style.color = '#fff';
+      el.style.borderColor = color;
     }
+  }
+
+  function onTabDragLeave(e) {
+    const el = e.currentTarget;
+    el.classList.remove('drag-over');
+    if (el.dataset.active !== '1') {
+      el.style.background = '';
+      el.style.color = '';
+      el.style.borderColor = '';
+    }
+  }
+
+  async function onTabDrop(e, label) {
+    e.preventDefault();
+    const el = e.currentTarget;
+    el.classList.remove('drag-over');
+    if (el.dataset.active !== '1') {
+      el.style.background = ''; el.style.color = ''; el.style.borderColor = '';
+    }
+    if (!label) return;
+    const ids = _dragIds.length ? [..._dragIds] : e.dataTransfer.getData('text/plain').split(',').filter(Boolean);
+    if (!ids.length) return;
+    if (await applyClassify(ids, label)) clearSelection();
   }
 
   function setSortAndGo(sortVal) {

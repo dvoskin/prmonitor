@@ -183,44 +183,24 @@
 
   <!-- Nav -->
   <nav style="padding:8px 0;flex:1;overflow-y:auto;">
-    {% set nav = [
-      ('/', '▦', 'Dashboard', 'dashboard'),
-      ('/radar', '◉', 'Reputation Radar', 'radar'),
-    ] %}
-    {% for href, icon, label, key in nav %}
-    {% set active = (request.path == '/' and key == 'dashboard') or
-                    (request.path == '/radar' and key == 'radar') %}
-    <a href="{{ href }}" class="nav-link {{ 'active' if active else '' }}">
-      <span class="nav-icon">{{ icon }}</span>
-      <span>{{ label }}</span>
-    </a>
-    {% endfor %}
-
-    <div class="nav-divider"></div>
-    <span class="nav-section-label">Mentions</span>
-
-    {% set nav2 = [
-      ('/mentions', '◎', 'All Mentions', 'mentions'),
-      ('/mentions?view=critical', '⚡', 'Critical', 'critical'),
-      ('/mentions?view=negative', '↘', 'Negative', 'negative'),
-      ('/mentions?view=positive', '↗', 'Positive', 'positive'),
-      ('/mentions?view=legal', '⚖', 'Legal Queue', 'legal'),
-      ('/mentions?view=opportunities', '◆', 'Opportunities', 'opportunities'),
-    ] %}
-    {% for href, icon, label, key in nav2 %}
-    {% set active = (request.path == '/mentions' and not request.args.get('view') and key == 'mentions') or
-                    (request.path == '/mentions' and request.args.get('view') == key) %}
-    <a href="{{ href }}" class="nav-link {{ 'active' if active else '' }}">
-      <span class="nav-icon">{{ icon }}</span>
-      <span>{{ label }}</span>
-      {% if label == 'Critical' and stats and stats.critical %}
-        <span style="margin-left:auto;background:rgba(239,68,68,.18);color:#f87171;border:1px solid rgba(239,68,68,.3);font-size:.59rem;border-radius:4px;padding:1px 6px;font-weight:800;">{{ stats.critical }}</span>
-      {% endif %}
-      {% if label == 'Legal Queue' and stats and stats.legal_queue %}
-        <span style="margin-left:auto;background:rgba(139,92,246,.18);color:#a78bfa;border:1px solid rgba(139,92,246,.3);font-size:.59rem;border-radius:4px;padding:1px 6px;font-weight:800;">{{ stats.legal_queue }}</span>
+    {% set on_mentions = request.path in ('/', '/mentions') %}
+    <a href="/mentions" class="nav-link {{ 'active' if on_mentions else '' }}">
+      <span class="nav-icon">◎</span>
+      <span>Mentions</span>
+      {% if stats and stats.critical %}
+        <span style="margin-left:auto;background:rgba(192,0,10,.18);color:#f87171;border:1px solid rgba(192,0,10,.3);font-size:.59rem;border-radius:4px;padding:1px 6px;font-weight:800;">{{ stats.critical }}</span>
       {% endif %}
     </a>
-    {% endfor %}
+
+    <a href="/radar" class="nav-link {{ 'active' if request.path == '/radar' else '' }}">
+      <span class="nav-icon">◉</span>
+      <span>Reputation Radar</span>
+    </a>
+
+    <a href="/dashboard" class="nav-link {{ 'active' if request.path == '/dashboard' else '' }}">
+      <span class="nav-icon">▦</span>
+      <span>Dashboard</span>
+    </a>
 
     <div class="nav-divider"></div>
     <a href="/settings" class="nav-link {{ 'active' if request.path == '/settings' else '' }}">
@@ -298,12 +278,12 @@
 
 <!-- ════ BOTTOM NAV (mobile) ════ -->
 <nav id="bottom-nav">
-  {% set bnav = [('/', '▦', 'Home'),('/mentions', '◎', 'Mentions'),('/mentions?view=critical', '⚡', 'Alerts'),('/radar', '◉', 'Radar'),('/settings', '⚙', 'Settings')] %}
+  {% set bnav = [('/mentions', '◎', 'Mentions'),('/mentions?view=critical', '⚡', 'Critical'),('/radar', '◉', 'Radar'),('/dashboard', '▦', 'Dashboard'),('/settings', '⚙', 'Settings')] %}
   {% for href, icon, label in bnav %}
-  {% set bactive = (request.path == '/' and label == 'Home') or
-                   (request.path == '/mentions' and not request.args.get('view') and label == 'Mentions') or
-                   (request.path == '/mentions' and request.args.get('view') == 'critical' and label == 'Alerts') or
+  {% set bactive = (request.path in ('/','/mentions') and not request.args.get('view') and label == 'Mentions') or
+                   (request.path == '/mentions' and request.args.get('view') == 'critical' and label == 'Critical') or
                    (request.path == '/radar' and label == 'Radar') or
+                   (request.path == '/dashboard' and label == 'Dashboard') or
                    (request.path == '/settings' and label == 'Settings') %}
   <a href="{{ href }}" class="bnav-item {{ 'active' if bactive else '' }}">
     <span class="icon">{{ icon }}</span>{{ label }}
