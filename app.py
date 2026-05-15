@@ -73,6 +73,126 @@ def get_stats():
 
 # ── Pages ─────────────────────────────────────────────────────────────────────
 
+@app.route("/radar")
+def radar_page():
+    stats = get_stats()
+    return render_template("radar.html", stats=stats)
+
+
+@app.route("/api/radar")
+def api_radar():
+    """
+    Cluster active mentions into narrative/incident nodes for the Reputation Radar.
+    Groups by (narrative_type × location/procedure), computes velocity and severity.
+    """
+    from collections import defaultdict
+
+    SEVERITY_RANK = {"critical": 4, "high": 3, "moderate": 2, "low": 1}
+    RANK_SEVERITY = {4: "critical", 3: "high", 2: "moderate", 1: "low"}
+
+    NARRATIVE_TITLE = {
+        "botched_allegation":    "Botched Allegation",
+        "safety_complaint":      "Patient Safety Concern",
+        "legal_threat":          "Legal Action",
+        "payment_dispute":       "Payment Dispute",
+        "staff_complaint":       "Staff Complaint",
+        "scheduling_complaint":  "Scheduling Issues",
+        "recovery_concern":      "Recovery Concern",
+        "communication_failure": "No Follow-Up Reports",
+        "positive_review":       "Positive Mentions",
+        "general_mention":       "General Mentions",
+    }
+
+    def _days_ago(ts):
+        if not ts:
+            return 999
+        try:
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            dt = dt.replace(tzinfo=None) if dt.tzinfo else dt
+            return (datetime.utcnow() - dt).days
+        except Exception:
+            return 999
+
+    with get_db() as conn:
+        rows = [dict(r) for r in conn.execute("""
+            SELECT id, title, snippet, platform, source_name, sentiment, risk_level,
+                   impact_score, narrative_type, discovered_at, published_at,
+                   engagement_count, related_location, related_procedure,
+                   ai_summary, why_it_matters, recommended_action,
+                   patient_outreach_needed, needs_legal_review, status
+            FROM mentions
+            WHERE status NOT IN ('archived')
+              AND discovered_at >= datetime('now', '-60 days')
+        """).fetchall()]
+
+    # Cluster by narrative_type + location (or procedure if no location)
+    clusters = defaultdict(list)
+    for r in rows:
+        nt  = r.get("narrative_type") or "general_mention"
+        loc = (r.get("related_location") or "").strip()
+        proc = (r.get("related_procedure") or "").strip()
+        key = f"{nt}||{loc}" if loc else (f"{nt}||{proc}" if proc else nt)
+        clusters[key].append(r)
+
+    nodes = []
+    for key, mentions in clusters.items():
+        if not mentions:
+            continue
+        mentions.sort(key=lambda m: m.get("impact_score") or 0, reverse=True)
+        top = mentions[0]
+
+        # Velocity: mentions last 7d vs prior 7d
+        last_7d  = sum(1 for m in mentions if _days_ago(m.get("discovered_at")) <= 7)
+        last_14d = sum(1 for m in mentions if _days_ago(m.get("discovered_at")) <= 14)
+        prior_7d = last_14d - last_7d
+        velocity = round(last_7d / max(prior_7d, 0.5), 2)
+        if last_7d == 0:
+            trend = "declining"
+        elif velocity >= 1.4:
+            trend = "rising"
+        else:
+            trend = "stable"
+
+        # Max severity in cluster
+        max_rank = max((SEVERITY_RANK.get(m.get("risk_level", "low"), 1) for m in mentions), default=1)
+        severity = RANK_SEVERITY.get(max_rank, "low")
+
+        # Title
+        nt   = top.get("narrative_type") or "general_mention"
+        base = NARRATIVE_TITLE.get(nt, nt.replace("_", " ").title())
+        loc  = top.get("related_location", "") or ""
+        proc = top.get("related_procedure", "") or ""
+        title = f"{base} — {loc}" if loc else (f"{base} — {proc}" if proc else base)
+
+        # Platforms
+        platforms = list({m.get("platform") or m.get("source_name") for m in mentions if m.get("platform") or m.get("source_name")})[:4]
+
+        avg_impact = round(sum(m.get("impact_score") or 0 for m in mentions) / len(mentions))
+
+        nodes.append({
+            "id":                key,
+            "title":             title,
+            "narrative_type":    nt,
+            "severity":          severity,
+            "count":             len(mentions),
+            "avg_impact":        avg_impact,
+            "velocity":          velocity,
+            "velocity_trend":    trend,
+            "platforms":         platforms,
+            "top_mention_id":    top["id"],
+            "ai_summary":        top.get("ai_summary") or "",
+            "why_it_matters":    top.get("why_it_matters") or "",
+            "recommended_action":top.get("recommended_action") or "",
+            "needs_legal":       any(m.get("needs_legal_review") for m in mentions),
+            "needs_outreach":    any(m.get("patient_outreach_needed") for m in mentions),
+            "related_location":  top.get("related_location") or "",
+            "related_procedure": top.get("related_procedure") or "",
+        })
+
+    # Sort: critical first, then by count
+    nodes.sort(key=lambda n: (-SEVERITY_RANK.get(n["severity"], 1), -n["count"]))
+    return jsonify(nodes)
+
 @app.route("/")
 def dashboard():
     stats = get_stats()

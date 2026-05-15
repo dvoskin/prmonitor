@@ -125,6 +125,50 @@ def init_db():
             dismissed_at TEXT DEFAULT (datetime('now'))
         );
 
+        CREATE TABLE IF NOT EXISTS integrations (
+            id            TEXT PRIMARY KEY,
+            service       TEXT UNIQUE NOT NULL,
+            access_token  TEXT,
+            refresh_token TEXT,
+            token_expiry  TEXT,
+            config        TEXT DEFAULT '{}',
+            connected     INTEGER DEFAULT 0,
+            created_at    TEXT DEFAULT (datetime('now')),
+            updated_at    TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS mention_context (
+            mention_id  TEXT PRIMARY KEY,
+            page_title  TEXT,
+            raw_text    TEXT,
+            markdown    TEXT,
+            linked_urls TEXT DEFAULT '[]',
+            indexed_at  TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (mention_id) REFERENCES mentions(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS apify_jobs (
+            id           TEXT PRIMARY KEY,
+            run_id       TEXT UNIQUE,
+            actor        TEXT NOT NULL,
+            keyword      TEXT,
+            platform     TEXT,
+            status       TEXT DEFAULT 'pending',
+            items_count  INTEGER DEFAULT 0,
+            created_at   TEXT DEFAULT (datetime('now')),
+            completed_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS google_locations (
+            id           TEXT PRIMARY KEY,
+            name         TEXT NOT NULL,
+            title        TEXT,
+            address      TEXT,
+            account_name TEXT,
+            last_synced  TEXT,
+            created_at   TEXT DEFAULT (datetime('now'))
+        );
+
         CREATE INDEX IF NOT EXISTS idx_mentions_impact ON mentions(impact_score DESC);
         CREATE INDEX IF NOT EXISTS idx_mentions_status ON mentions(status);
         CREATE INDEX IF NOT EXISTS idx_mentions_sentiment ON mentions(sentiment);
@@ -138,6 +182,15 @@ def init_db():
             ("narrative_type",         "TEXT DEFAULT 'general_mention'"),
             ("patient_outreach_needed","INTEGER DEFAULT 0"),
             ("response_draft",         "TEXT"),
+            # Connector provenance + enrichment flags
+            ("connector",             "TEXT"),
+            ("deep_indexed",          "INTEGER DEFAULT 0"),
+            ("ai_used",               "INTEGER DEFAULT 0"),
+            # Google Business Profile fields
+            ("star_rating",           "INTEGER"),
+            ("reply_status",          "TEXT"),
+            ("google_review_id",      "TEXT"),
+            ("reply_available",       "INTEGER DEFAULT 0"),
         ]:
             try:
                 conn.execute(f"ALTER TABLE mentions ADD COLUMN {col} {definition}")

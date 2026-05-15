@@ -1,0 +1,871 @@
+{% extends "base.html" %}
+{% block title %}Reputation Radar — Goals PS{% endblock %}
+{% block content %}
+
+<style>
+  #page-content { padding: 0 !important; overflow: hidden; }
+  body { overflow: hidden; }
+
+  /* ── Toolbar ── */
+  #radar-toolbar {
+    position: fixed;
+    top: 60px;
+    left: 224px;
+    right: 0;
+    height: 48px;
+    background: #0c0e16;
+    border-bottom: 1px solid #1a1f2e;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 8px;
+    z-index: 90;
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #1e2433;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    transition: all .15s;
+    letter-spacing: .01em;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+  .filter-chip:hover {
+    background: #1a1f2e;
+    color: rgba(255,255,255,0.75);
+  }
+  .filter-chip.active {
+    background: #1e2433;
+    border-color: #2e3650;
+    color: rgba(255,255,255,0.92);
+  }
+  .filter-chip.fc-critical.active  { border-color: rgba(239,68,68,0.5);   color: #f87171; background: rgba(239,68,68,0.08); }
+  .filter-chip.fc-high.active      { border-color: rgba(249,115,22,0.45); color: #fb923c; background: rgba(249,115,22,0.08); }
+  .filter-chip.fc-moderate.active  { border-color: rgba(245,158,11,0.4);  color: #fbbf24; background: rgba(245,158,11,0.08); }
+  .filter-chip.fc-positive.active  { border-color: rgba(96,165,250,0.4);  color: #60a5fa; background: rgba(96,165,250,0.08); }
+  .filter-chip.fc-rising.active    { border-color: rgba(255,107,107,0.4); color: #ff6b6b; background: rgba(255,107,107,0.08); }
+
+  .toolbar-sep {
+    width: 1px;
+    height: 22px;
+    background: #1e2433;
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  /* ── Legend ── */
+  #radar-legend {
+    position: fixed;
+    left: calc(224px + 16px);
+    top: calc(60px + 48px + 14px);
+    background: rgba(12,14,22,0.88);
+    border: 1px solid #1e2433;
+    border-radius: 10px;
+    padding: 11px 14px;
+    z-index: 80;
+    backdrop-filter: blur(6px);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: .68rem;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.8;
+    font-family: 'Inter', sans-serif;
+  }
+  .legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Canvas ── */
+  #radar-canvas {
+    position: fixed;
+    left: 224px;
+    top: calc(60px + 48px);
+    width: calc(100vw - 224px);
+    height: calc(100vh - 60px - 48px);
+    display: block;
+    background: #080a0f;
+  }
+
+  /* ── Tooltip ── */
+  #radar-tooltip {
+    position: fixed;
+    display: none;
+    background: rgba(12,14,22,0.95);
+    border: 1px solid #2e3650;
+    border-radius: 9px;
+    padding: 10px 13px;
+    pointer-events: none;
+    z-index: 200;
+    max-width: 220px;
+    font-family: 'Inter', sans-serif;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  #radar-tooltip .tt-title {
+    font-size: .8rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.92);
+    line-height: 1.3;
+    margin-bottom: 5px;
+  }
+  #radar-tooltip .tt-row {
+    font-size: .7rem;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.7;
+  }
+  #radar-tooltip .tt-sev {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  /* ── Detail Panel ── */
+  #detail-panel {
+    position: fixed;
+    right: 0;
+    top: 60px;
+    bottom: 0;
+    width: 380px;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    z-index: 150;
+    background: #0f1117;
+    border-left: 1.5px solid #1e2433;
+    font-family: 'Inter', sans-serif;
+  }
+  #detail-panel.open {
+    transform: translateX(0);
+  }
+
+  .panel-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #1a1f2e;
+    border: 1px solid #2e3650;
+    color: rgba(255,255,255,0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+  }
+  .panel-close:hover {
+    background: #242b3d;
+    color: rgba(255,255,255,0.85);
+  }
+
+  .panel-section-label {
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 6px;
+  }
+  .panel-section-body {
+    font-size: .8rem;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.6;
+  }
+  .panel-divider {
+    height: 1px;
+    background: #1e2433;
+    margin: 18px 0;
+  }
+
+  .chip-warn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: .72rem;
+    font-weight: 600;
+    margin: 0 6px 6px 0;
+  }
+  .chip-legal    { background: rgba(91,33,182,0.18); border: 1px solid rgba(139,92,246,0.35); color: #a78bfa; }
+  .chip-outreach { background: rgba(16,185,129,0.12); border: 1px solid rgba(52,211,153,0.3); color: #34d399; }
+
+  .panel-btn-primary {
+    display: block;
+    width: 100%;
+    padding: 10px 0;
+    text-align: center;
+    border-radius: 9px;
+    font-size: .82rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    background: rgba(201,169,110,0.15);
+    border: 1px solid rgba(201,169,110,0.3);
+    color: #c9a96e;
+    margin-bottom: 8px;
+    transition: all .15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .panel-btn-primary:hover {
+    background: rgba(201,169,110,0.25);
+    color: #dabb7e;
+  }
+  .panel-btn-ghost {
+    display: block;
+    width: 100%;
+    padding: 9px 0;
+    text-align: center;
+    border-radius: 9px;
+    font-size: .78rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid #2e3650;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    transition: all .15s;
+    font-family: 'Inter', sans-serif;
+  }
+  .panel-btn-ghost:hover {
+    background: #1a1f2e;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* ── Loading overlay ── */
+  #radar-loading {
+    position: fixed;
+    left: 224px;
+    top: calc(60px + 48px);
+    width: calc(100vw - 224px);
+    height: calc(100vh - 60px - 48px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #080a0f;
+    z-index: 85;
+    gap: 14px;
+    color: rgba(255,255,255,0.3);
+    font-family: 'Inter', sans-serif;
+    font-size: .82rem;
+  }
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(255,255,255,0.06);
+    border-top-color: rgba(201,169,110,0.6);
+    border-radius: 50%;
+    animation: spin .9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<!-- Filter Toolbar -->
+<div id="radar-toolbar">
+  <button class="filter-chip active" data-filter="all" onclick="setFilter('all', this)">All</button>
+  <button class="filter-chip fc-critical" data-filter="critical" onclick="setFilter('critical', this)">Critical</button>
+  <button class="filter-chip fc-high" data-filter="high" onclick="setFilter('high', this)">High</button>
+  <button class="filter-chip fc-moderate" data-filter="moderate" onclick="setFilter('moderate', this)">Moderate</button>
+  <button class="filter-chip fc-positive" data-filter="positive" onclick="setFilter('positive', this)">Positive</button>
+  <div class="toolbar-sep"></div>
+  <button class="filter-chip fc-rising" data-filter="rising" onclick="setFilter('rising', this)">↑ Rising</button>
+  <div style="margin-left: auto; font-size: .7rem; color: rgba(255,255,255,0.22); font-family: 'Inter', sans-serif; white-space: nowrap;">
+    Reputation Radar
+  </div>
+</div>
+
+<!-- Legend -->
+<div id="radar-legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#ef4444; box-shadow: 0 0 5px #ef4444;"></span>Critical</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#f97316; box-shadow: 0 0 5px #f97316;"></span>High</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#f59e0b; box-shadow: 0 0 5px #f59e0b;"></span>Moderate</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#22c55e; box-shadow: 0 0 5px #22c55e;"></span>Low</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#60a5fa; box-shadow: 0 0 5px #60a5fa;"></span>Positive</div>
+  <div class="legend-item" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #1e2433;">
+    <span style="font-size: .65rem; color: rgba(255,255,255,0.28);">Size = reach · Pulse = growing</span>
+  </div>
+</div>
+
+<!-- Canvas -->
+<canvas id="radar-canvas"></canvas>
+
+<!-- Loading state -->
+<div id="radar-loading">
+  <div class="loading-spinner"></div>
+  <span>Loading radar data…</span>
+</div>
+
+<!-- Tooltip -->
+<div id="radar-tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-row" id="tt-rows"></div>
+</div>
+
+<!-- Detail Panel -->
+<div id="detail-panel">
+  <div id="detail-panel-inner" style="padding: 22px 20px 28px;"></div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  /* ─────────────────────────────────────
+     Constants
+  ───────────────────────────────────── */
+  const SEVERITY_COLORS = {
+    critical: { fill: 'rgba(185, 28, 28, 0.88)',  glow: '#ef4444', ring: 'rgba(239,68,68,0.5)' },
+    high:     { fill: 'rgba(154, 52, 18, 0.85)',  glow: '#f97316', ring: 'rgba(249,115,22,0.45)' },
+    moderate: { fill: 'rgba(113, 63, 18, 0.82)',  glow: '#f59e0b', ring: 'rgba(245,158,11,0.4)' },
+    low:      { fill: 'rgba(20, 83, 45, 0.78)',   glow: '#22c55e', ring: 'rgba(34,197,94,0.35)' },
+    positive: { fill: 'rgba(29, 78, 216, 0.78)',  glow: '#60a5fa', ring: 'rgba(96,165,250,0.4)' },
+  };
+
+  const TREND_ARROW = {
+    rising:  { ch: '↑', color: '#ff6b6b' },
+    falling: { ch: '↓', color: '#94a3b8' },
+    stable:  { ch: '→', color: 'rgba(255,255,255,0.5)' },
+  };
+
+  const SEVERITY_ZONES = {
+    critical: { yMin: 0.12, yMax: 0.40 },
+    high:     { yMin: 0.28, yMax: 0.55 },
+    moderate: { yMin: 0.43, yMax: 0.68 },
+    low:      { yMin: 0.60, yMax: 0.85 },
+    positive: { yMin: 0.60, yMax: 0.85 },
+  };
+
+  /* ─────────────────────────────────────
+     State
+  ───────────────────────────────────── */
+  let nodes        = [];
+  let activeFilter = 'all';
+  let hoveredNode  = null;
+  let animFrame    = null;
+  let t            = 0;
+
+  const canvas  = document.getElementById('radar-canvas');
+  const ctx     = canvas.getContext('2d');
+  const loading = document.getElementById('radar-loading');
+  const tooltip = document.getElementById('radar-tooltip');
+  const panel   = document.getElementById('detail-panel');
+
+  /* ─────────────────────────────────────
+     Helpers
+  ───────────────────────────────────── */
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
+  function nodeRadius(n) {
+    return Math.min(Math.max(18 + n.count * 5 + n.avg_impact * 0.15, 20), 68);
+  }
+
+  function isVisible(n) {
+    if (activeFilter === 'all')    return true;
+    if (activeFilter === 'rising') return n.velocity_trend === 'rising';
+    return n.severity === activeFilter;
+  }
+
+  function truncText(ctx2, text, maxW) {
+    if (ctx2.measureText(text).width <= maxW) return text;
+    let t = text;
+    while (t.length > 1 && ctx2.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+    return t + '…';
+  }
+
+  /* ─────────────────────────────────────
+     Build nodes from API data
+  ───────────────────────────────────── */
+  function buildNodes(data) {
+    const W = canvas.width;
+    const H = canvas.height;
+
+    nodes = data.map(d => {
+      const zone = SEVERITY_ZONES[d.severity] || SEVERITY_ZONES.low;
+      const xMin = 0.15, xMax = 0.85;
+
+      const ax = rand(xMin, xMax) * W;
+      const ay = rand(zone.yMin, zone.yMax) * H;
+
+      const phaseSpeed = d.velocity_trend === 'rising'
+        ? rand(0.025, 0.045)
+        : rand(0.008, 0.018);
+
+      return {
+        ...d,
+        // physics
+        x: ax + rand(-20, 20),
+        y: ay + rand(-20, 20),
+        vx: 0,
+        vy: 0,
+        ax: ax,
+        ay: ay,
+        // rendering
+        r: nodeRadius(d),
+        phase: rand(0, Math.PI * 2),
+        phaseSpeed,
+        colors: SEVERITY_COLORS[d.severity] || SEVERITY_COLORS.low,
+      };
+    });
+  }
+
+  /* ─────────────────────────────────────
+     Physics tick
+  ───────────────────────────────────── */
+  function tick() {
+    const W = canvas.width;
+    const H = canvas.height;
+
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+
+      // Spring toward anchor
+      const dx = n.ax - n.x;
+      const dy = n.ay - n.y;
+      n.vx += dx * 0.028;
+      n.vy += dy * 0.028;
+
+      // Node-node repulsion
+      for (let j = i + 1; j < nodes.length; j++) {
+        const m = nodes[j];
+        const ex = n.x - m.x;
+        const ey = n.y - m.y;
+        const dist = Math.sqrt(ex * ex + ey * ey) || 0.001;
+        const minD = (n.r + m.r) * 2.5;
+        if (dist < minD) {
+          const force = 5000 / (dist * dist);
+          const fx = (ex / dist) * force;
+          const fy = (ey / dist) * force;
+          n.vx += fx; n.vy += fy;
+          m.vx -= fx; m.vy -= fy;
+        }
+      }
+
+      // Damping
+      n.vx *= 0.87;
+      n.vy *= 0.87;
+
+      // Integrate
+      n.x += n.vx;
+      n.y += n.vy;
+
+      // Wall bounce with margin
+      const margin = n.r + 24;
+      if (n.x < margin)     { n.x = margin;     n.vx = Math.abs(n.vx) * 0.5; }
+      if (n.x > W - margin) { n.x = W - margin; n.vx = -Math.abs(n.vx) * 0.5; }
+      if (n.y < margin)     { n.y = margin;     n.vy = Math.abs(n.vy) * 0.5; }
+      if (n.y > H - margin) { n.y = H - margin; n.vy = -Math.abs(n.vy) * 0.5; }
+
+      // Phase advance
+      n.phase += n.phaseSpeed;
+    }
+  }
+
+  /* ─────────────────────────────────────
+     Draw a single node
+  ───────────────────────────────────── */
+  function drawNode(n) {
+    const { x, y, r, phase, colors } = n;
+    const isHovered = hoveredNode === n;
+    const visible   = isVisible(n);
+    const alpha     = visible ? 1 : 0.12;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // Outer pulse ring
+    if (n.velocity_trend === 'rising') {
+      const ringPulse = (Math.sin(phase) + 1) / 2; // 0→1
+      const ringR = r + 8 + ringPulse * 14;
+      const ringAlpha = 0.35 * (1 - ringPulse) + 0.05;
+      ctx.beginPath();
+      ctx.arc(x, y, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = colors.ring.replace(/[\d.]+\)$/, `${ringAlpha})`);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      // Faint static ring
+      ctx.beginPath();
+      ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = colors.ring.replace(/[\d.]+\)$/, '0.18)');
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Glow shadow
+    ctx.shadowBlur    = isHovered ? 38 : 22;
+    ctx.shadowColor   = colors.glow;
+
+    // Radial gradient fill
+    const grad = ctx.createRadialGradient(x - r * 0.28, y - r * 0.28, r * 0.05, x, y, r);
+    grad.addColorStop(0, colors.fill.replace(/[\d.]+\)$/, '1)').replace('rgba', 'rgba').replace(/,\s*[\d.]+\)/, ', 1)'));
+    grad.addColorStop(1, colors.fill);
+
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Clear shadow for text
+    ctx.shadowBlur  = 0;
+    ctx.shadowColor = 'transparent';
+
+    // Labels
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (r >= 38) {
+      // Title
+      ctx.font         = `700 11px 'Inter', sans-serif`;
+      ctx.fillStyle    = 'rgba(255,255,255,0.93)';
+      const maxW = r * 1.7;
+      ctx.fillText(truncText(ctx, n.title, maxW), x, y - 7);
+
+      // Count
+      ctx.font      = `500 9px 'Inter', sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillText(`${n.count} mention${n.count !== 1 ? 's' : ''}`, x, y + 5);
+
+      // Trend arrow
+      const ta = TREND_ARROW[n.velocity_trend] || TREND_ARROW.stable;
+      ctx.font      = `700 8px 'Inter', sans-serif`;
+      ctx.fillStyle = ta.color;
+      ctx.fillText(ta.ch, x, y + 15);
+    } else {
+      ctx.font      = `700 10px 'Inter', sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      const maxW = r * 1.7;
+      ctx.fillText(truncText(ctx, n.title.split(' ')[0], maxW), x, y);
+    }
+
+    ctx.restore();
+  }
+
+  /* ─────────────────────────────────────
+     Draw background grid / rings
+  ───────────────────────────────────── */
+  function drawBackground() {
+    const W = canvas.width;
+    const H = canvas.height;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#080a0f';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle concentric rings from center
+    const cx = W / 2, cy = H / 2;
+    const maxR = Math.max(W, H) * 0.7;
+    for (let i = 1; i <= 4; i++) {
+      const frac = i / 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, maxR * frac, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${0.025 - frac * 0.004})`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Subtle grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.018)';
+    ctx.lineWidth   = 0.5;
+    const cols = 8, rows = 6;
+    for (let i = 1; i < cols; i++) {
+      ctx.beginPath(); ctx.moveTo(W * i / cols, 0); ctx.lineTo(W * i / cols, H); ctx.stroke();
+    }
+    for (let j = 1; j < rows; j++) {
+      ctx.beginPath(); ctx.moveTo(0, H * j / rows); ctx.lineTo(W, H * j / rows); ctx.stroke();
+    }
+  }
+
+  /* ─────────────────────────────────────
+     Empty state
+  ───────────────────────────────────── */
+  function drawEmpty() {
+    const W = canvas.width;
+    const H = canvas.height;
+    drawBackground();
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font         = `500 14px 'Inter', sans-serif`;
+    ctx.fillStyle    = 'rgba(255,255,255,0.22)';
+    ctx.fillText('No active narratives detected.', W / 2, H / 2 - 12);
+    ctx.font         = `400 12px 'Inter', sans-serif`;
+    ctx.fillStyle    = 'rgba(255,255,255,0.13)';
+    ctx.fillText('Run a scan to populate the radar.', W / 2, H / 2 + 12);
+  }
+
+  /* ─────────────────────────────────────
+     Main render loop
+  ───────────────────────────────────── */
+  function loop() {
+    t++;
+    if (nodes.length === 0) {
+      drawEmpty();
+      animFrame = requestAnimationFrame(loop);
+      return;
+    }
+
+    tick();
+    drawBackground();
+
+    // Draw connections between same-severity nodes (subtle)
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        if (a.severity !== b.severity) continue;
+        if (!isVisible(a) || !isVisible(b)) continue;
+        const dx   = b.x - a.x;
+        const dy   = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 220) continue;
+        const alpha = 0.06 * (1 - dist / 220);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+        ctx.lineWidth   = 0.5;
+        ctx.stroke();
+      }
+    }
+
+    // Draw nodes (invisible ones first, then visible)
+    const invisible = nodes.filter(n => !isVisible(n));
+    const visible   = nodes.filter(n =>  isVisible(n));
+    invisible.forEach(drawNode);
+    visible.forEach(drawNode);
+
+    animFrame = requestAnimationFrame(loop);
+  }
+
+  /* ─────────────────────────────────────
+     Canvas sizing
+  ───────────────────────────────────── */
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr  = window.devicePixelRatio || 1;
+    canvas.width  = rect.width  * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    // Re-place anchors proportionally if we have nodes
+    nodes.forEach(n => {
+      const zone = SEVERITY_ZONES[n.severity] || SEVERITY_ZONES.low;
+      n.ax = rand(0.15, 0.85) * rect.width;
+      n.ay = rand(zone.yMin, zone.yMax) * rect.height;
+    });
+  }
+
+  /* ─────────────────────────────────────
+     Hit test
+  ───────────────────────────────────── */
+  function nodeAt(cx2, cy2) {
+    const rect = canvas.getBoundingClientRect();
+    const x    = cx2 - rect.left;
+    const y    = cy2 - rect.top;
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const n  = nodes[i];
+      const dx = n.x - x;
+      const dy = n.y - y;
+      if (dx * dx + dy * dy <= (n.r + 6) * (n.r + 6)) return n;
+    }
+    return null;
+  }
+
+  /* ─────────────────────────────────────
+     Tooltip helpers
+  ───────────────────────────────────── */
+  const SEV_TOOLTIP_STYLES = {
+    critical: 'background: rgba(239,68,68,0.18); color: #f87171;',
+    high:     'background: rgba(249,115,22,0.18); color: #fb923c;',
+    moderate: 'background: rgba(245,158,11,0.18); color: #fbbf24;',
+    low:      'background: rgba(34,197,94,0.18); color: #4ade80;',
+    positive: 'background: rgba(96,165,250,0.18); color: #60a5fa;',
+  };
+
+  function showTooltip(n, ex, ey) {
+    document.getElementById('tt-title').textContent = n.title;
+    const ta   = TREND_ARROW[n.velocity_trend] || TREND_ARROW.stable;
+    const sev  = n.severity;
+    document.getElementById('tt-rows').innerHTML = `
+      <span class="tt-sev" style="${SEV_TOOLTIP_STYLES[sev] || ''}">${sev}</span>
+      &nbsp; ${n.count} mention${n.count !== 1 ? 's' : ''} &nbsp;
+      <span style="color:${ta.color}">${ta.ch} ${n.velocity_trend}</span>
+    `;
+    tooltip.style.display = 'block';
+    // Position near cursor, avoid overflow
+    const tw = 220, th = 70;
+    let left = ex + 14;
+    let top  = ey - 10;
+    if (left + tw > window.innerWidth  - 10) left = ex - tw - 14;
+    if (top  + th > window.innerHeight - 10) top  = ey - th;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top  = top  + 'px';
+  }
+
+  function hideTooltip() {
+    tooltip.style.display = 'none';
+  }
+
+  /* ─────────────────────────────────────
+     Detail Panel
+  ───────────────────────────────────── */
+  function openPanel(n) {
+    const ta  = TREND_ARROW[n.velocity_trend] || TREND_ARROW.stable;
+    const sev = n.severity;
+    const sStyle = SEV_TOOLTIP_STYLES[sev] || '';
+    const plats = (n.platforms || []).join(', ') || '—';
+
+    let chipsHtml = '';
+    if (n.needs_legal)    chipsHtml += `<span class="chip-warn chip-legal">⚖ Legal Review Required</span>`;
+    if (n.needs_outreach) chipsHtml += `<span class="chip-warn chip-outreach">🤝 Patient Outreach Needed</span>`;
+
+    const viewUrl = `/mentions?view=${encodeURIComponent(sev)}`;
+    const topUrl  = n.top_mention_id ? `/mentions/${n.top_mention_id}` : null;
+
+    document.getElementById('detail-panel-inner').innerHTML = `
+      <div style="padding-right: 36px;">
+        <div style="margin-bottom: 10px;">
+          <span class="tt-sev" style="${sStyle}; padding: 3px 10px; border-radius: 5px; font-size: .67rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;">${sev}</span>
+        </div>
+        <div style="font-size: 1.12rem; font-weight: 700; color: rgba(255,255,255,0.92); line-height: 1.35; margin-bottom: 12px;">${n.title}</div>
+        <div style="font-size: .76rem; color: rgba(255,255,255,0.4); margin-bottom: 4px;">
+          <strong style="color: rgba(255,255,255,0.65);">${n.count}</strong> mention${n.count !== 1 ? 's' : ''}
+          &nbsp;·&nbsp; ${plats}
+          &nbsp;·&nbsp; <span style="color:${ta.color}">${ta.ch} ${n.velocity_trend}</span>
+          ${n.related_location ? `&nbsp;·&nbsp; ${n.related_location}` : ''}
+        </div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      ${n.ai_summary ? `
+      <div style="margin-bottom: 18px;">
+        <div class="panel-section-label">AI Summary</div>
+        <div class="panel-section-body">${n.ai_summary}</div>
+      </div>
+      ` : ''}
+
+      ${n.why_it_matters ? `
+      <div style="margin-bottom: 18px;">
+        <div class="panel-section-label">Why It Matters</div>
+        <div class="panel-section-body">${n.why_it_matters}</div>
+      </div>
+      ` : ''}
+
+      ${n.recommended_action ? `
+      <div style="margin-bottom: 18px;">
+        <div class="panel-section-label">Recommended Action</div>
+        <div class="panel-section-body" style="color: rgba(255,255,255,0.88); font-weight: 600;">${n.recommended_action}</div>
+      </div>
+      ` : ''}
+
+      ${chipsHtml ? `<div style="margin-bottom: 18px;">${chipsHtml}</div>` : ''}
+
+      <div class="panel-divider"></div>
+
+      <a href="${viewUrl}" class="panel-btn-primary">View Related Mentions →</a>
+      ${topUrl ? `<a href="${topUrl}" class="panel-btn-ghost">Open Top Mention →</a>` : ''}
+    `;
+
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'panel-close';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = closePanel;
+    document.getElementById('detail-panel').appendChild(closeBtn);
+
+    panel.classList.add('open');
+  }
+
+  function closePanel() {
+    panel.classList.remove('open');
+    // Remove orphan close buttons
+    panel.querySelectorAll('.panel-close').forEach(b => b.remove());
+  }
+
+  /* ─────────────────────────────────────
+     Filter
+  ───────────────────────────────────── */
+  window.setFilter = function (filter, btn) {
+    activeFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+  };
+
+  /* ─────────────────────────────────────
+     Mouse events
+  ───────────────────────────────────── */
+  canvas.addEventListener('mousemove', e => {
+    const n = nodeAt(e.clientX, e.clientY);
+    hoveredNode = n || null;
+    canvas.style.cursor = n ? 'pointer' : 'default';
+    if (n) {
+      showTooltip(n, e.clientX, e.clientY);
+    } else {
+      hideTooltip();
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    hoveredNode = null;
+    hideTooltip();
+    canvas.style.cursor = 'default';
+  });
+
+  canvas.addEventListener('click', e => {
+    const n = nodeAt(e.clientX, e.clientY);
+    if (n) openPanel(n);
+  });
+
+  /* ─────────────────────────────────────
+     Resize
+  ───────────────────────────────────── */
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+  });
+
+  /* ─────────────────────────────────────
+     Boot
+  ───────────────────────────────────── */
+  async function init() {
+    resizeCanvas();
+    animFrame = requestAnimationFrame(loop);
+
+    try {
+      const res  = await fetch('/api/radar');
+      const data = await res.json();
+      buildNodes(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Radar API error:', err);
+      buildNodes([]);
+    } finally {
+      loading.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+{% endblock %}

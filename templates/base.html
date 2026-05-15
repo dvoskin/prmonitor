@@ -176,6 +176,7 @@
   <nav style="padding:10px 8px;flex:1;">
     {% set nav = [
       ('/', '▦', 'Dashboard', 'dashboard'),
+      ('/radar', '◉', 'Reputation Radar', 'radar'),
       ('/mentions', '◎', 'All Mentions', 'mentions'),
       ('/mentions?view=critical', '⚡', 'Critical', 'critical'),
       ('/mentions?view=negative', '↘', 'Negative', 'negative'),
@@ -185,6 +186,7 @@
     ] %}
     {% for href, icon, label, key in nav %}
     {% set active = (request.path == '/' and key == 'dashboard') or
+                    (request.path == '/radar' and key == 'radar') or
                     (request.path == '/mentions' and not request.args.get('view') and key == 'mentions') or
                     (request.path == '/mentions' and request.args.get('view') == key) %}
     <a href="{{ href }}" class="nav-link {{ 'active' if active else '' }}">
